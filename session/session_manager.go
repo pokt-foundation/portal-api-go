@@ -3,7 +3,7 @@ package session
 import (
 	"time"
 
-	"github.com/pokt-foundation/pocket-go/pkg/provider"
+	"github.com/pokt-foundation/pocket-go/provider"
 )
 
 type SessionManager interface {
@@ -44,7 +44,7 @@ func (s *sessionManager) GetSession(k Key) (*provider.Session, error) {
 }
 
 func (s *sessionManager) newSession(k Key) (*provider.Session, error) {
-	rpcProvider := provider.NewJSONRPCProvider(s.dispatchUrls[0], s.dispatchUrls)
+	rpcProvider := provider.NewProvider(s.dispatchUrls[0], s.dispatchUrls)
 	rpcProvider.UpdateRequestConfig(0, time.Duration(20)*time.Second)
 	r, err := rpcProvider.Dispatch(k.PublicKey, k.BlockchainID, nil)
 	if err != nil {

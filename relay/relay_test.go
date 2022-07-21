@@ -7,8 +7,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	logger "github.com/sirupsen/logrus"
 
-	"github.com/pokt-foundation/pocket-go/pkg/provider"
-	"github.com/pokt-foundation/pocket-go/pkg/relayer"
+	"github.com/pokt-foundation/pocket-go/provider"
+	"github.com/pokt-foundation/pocket-go/relayer"
 
 	"github.com/pokt-foundation/portal-api-go/repository"
 	"github.com/pokt-foundation/portal-api-go/session"
@@ -34,7 +34,7 @@ func TestSendRelay(t *testing.T) {
 		details     RelayDetails
 		aatPlan     AatPlan
 		relayError  error
-		expected    []*relayer.RelayInput
+		expected    []*relayer.Input
 		expectedErr error
 	}{
 		{
@@ -43,7 +43,7 @@ func TestSendRelay(t *testing.T) {
 				Application: &app1,
 			},
 			aatPlan: AatPlanFreemium,
-			expected: []*relayer.RelayInput{
+			expected: []*relayer.Input{
 				{
 					Method: "POST",
 					PocketAAT: &provider.PocketAAT{
@@ -167,11 +167,11 @@ func (f fakeSessionManager) GetSession(k session.Key) (*provider.Session, error)
 }
 
 type fakePocketRelayer struct {
-	relays     []*relayer.RelayInput
+	relays     []*relayer.Input
 	relayError error
 }
 
-func (f *fakePocketRelayer) Relay(input *relayer.RelayInput, options *provider.RelayRequestOptions) (*relayer.Output, error) {
+func (f *fakePocketRelayer) Relay(input *relayer.Input, options *provider.RelayRequestOptions) (*relayer.Output, error) {
 	f.relays = append(f.relays, input)
 	return &relayer.Output{}, f.relayError
 }

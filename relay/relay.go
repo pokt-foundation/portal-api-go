@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	logger "github.com/sirupsen/logrus"
 
-	"github.com/pokt-foundation/pocket-go/pkg/provider"
-	"github.com/pokt-foundation/pocket-go/pkg/relayer"
-	"github.com/pokt-foundation/pocket-go/pkg/signer"
+	"github.com/pokt-foundation/pocket-go/provider"
+	"github.com/pokt-foundation/pocket-go/relayer"
+	"github.com/pokt-foundation/pocket-go/signer"
 
 	"github.com/pokt-foundation/portal-api-go/repository"
 	"github.com/pokt-foundation/portal-api-go/session"
@@ -25,7 +25,7 @@ type RelayResponse struct {
 // TODO: this is needed because pocket-go does not provide an interface yet, which is needed for unit-testing.
 // 	remove this and use relayer.Relayer of pocket-go once that is an interface instead of a struct
 type pocketRelayer interface {
-	Relay(input *relayer.RelayInput, options *provider.RelayRequestOptions) (*relayer.Output, error)
+	Relay(input *relayer.Input, options *provider.RelayRequestOptions) (*relayer.Output, error)
 }
 
 type RelayOptions struct {
@@ -61,16 +61,16 @@ type relayServer struct {
 }
 
 func NewRelayServer(rpcUrls []string, privateKey string, settings RelayerSettings, r repository.Repository, sessionManager session.SessionManager, log *logger.Logger) (Relayer, error) {
-	rpcProvider := provider.NewJSONRPCProvider(rpcUrls[0], rpcUrls)
+	rpcProvider := provider.NewProvider(rpcUrls[0], rpcUrls)
 	rpcProvider.UpdateRequestConfig(0, time.Duration(20)*time.Second)
 
-	wallet, err := signer.NewWalletFromPrivatekey(privateKey)
+	reqSigner, err := signer.NewSignerFromPrivateKey(privateKey)
 	if err != nil {
 		log.WithFields(logger.Fields{"error": err}).Warn("Error creating wallet")
 		return &relayServer{}, fmt.Errorf("Error creating wallet: %v", err)
 	}
 
-	p := relayer.NewPocketRelayer(wallet, rpcProvider)
+	p := relayer.NewRelayer(reqSigner, rpcProvider)
 
 	return &relayServer{
 		repository:     r,
@@ -307,7 +307,7 @@ func (r *relayServer) sendRelay(details *RelayDetails) error {
 	log = log.WithFields(logger.Fields{"node": node})
 	log.Info("Sending relay")
 
-	relay := relayer.RelayInput{
+	relay := relayer.Input{
 		Method:     "POST",
 		PocketAAT:  &pocketAat,
 		Session:    session,
