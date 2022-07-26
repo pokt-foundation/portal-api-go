@@ -85,17 +85,17 @@ type PublicPocketAccount struct {
 }
 
 type FreeTierApplicationAccount struct {
-	Address   string `json:"address"`
-	PublicKey string `json:"publicKey"`
+	Address   string `json:"address" bson:"address"`
+	PublicKey string `json:"publicKey" bson:"publicKey"`
 	// TODO: likely need to store an encrypted form in memory
-	PrivateKey string `json:"privateKey"`
+	PrivateKey string `json:"privateKey" bson:"privateKey"`
 }
 
 type GatewayAAT struct {
-	Version              string `json:"version"`
-	ApplicationPublicKey string `json:"applicationPublicKey"`
-	ClientPublicKey      string `json:"clientPublicKey"`
-	ApplicationSignature string `json:"applicationSignature"`
+	Version              string `json:"version" bson:"version"`
+	ApplicationPublicKey string `json:"applicationPublicKey" bson:"applicationPublicKey"`
+	ClientPublicKey      string `json:"clientPublicKey" bson:"clientPublicKey"`
+	ApplicationSignature string `json:"applicationSignature" bson:"applicationSignature"`
 }
 
 type FreeTierAAT struct {
