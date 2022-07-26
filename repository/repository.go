@@ -11,10 +11,13 @@ import (
 )
 
 type Blockchain struct {
-	ID           string   `json:"_id"`
-	BlockchainID string   `json:"blockchain"`
-	ChainID      string   `json:"chainID"`
+	ID           string `json:"_id"`
+	BlockchainID string `json:"blockchain"`
+	// TODO: correct DB schema + import method
+	ChainID      int64    `json:"chainID"`
 	Aliases      []string `json:"blockchainAliases"`
+	ChainIDCheck string   `json:"chainIDCheck"`
+	Path         string   `json:"path"`
 }
 
 type User struct {
