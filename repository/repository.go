@@ -109,13 +109,13 @@ type FreeTierAAT struct {
 }
 
 type GatewaySettings struct {
-	SecretKey            string              `json:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
-	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
-	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
-	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
-	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty"`
-	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
+	SecretKey            string              `json:"secretKey" bson:"secretKey"`
+	SecretKeyRequired    bool                `json:"secreyKeyRequired" bson:"secreyKeyRequired"`
+	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty" bson:"whitelistOrigins,omitempty"`
+	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty" bson:"whitelistUserAgents,omitempty"`
+	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty" bson:"whitelistContracts,omitempty"`
+	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty" bson:"whitelistMethods,omitempty"`
+	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty" bson:"whitelistBlockchains,omitempty"`
 }
 
 type WhitelistContract struct {
