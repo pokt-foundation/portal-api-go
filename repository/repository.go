@@ -49,7 +49,7 @@ type loadBalancer struct {
 	StickyOptions
 }
 
-// LoadBalancer contains verified fields, e.g. applications
+// LoadBalancer contains verified fields, e.g. applications (Referred to as Endpoint in Portal UI Backend)
 type LoadBalancer struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
