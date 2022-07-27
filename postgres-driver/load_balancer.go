@@ -10,7 +10,7 @@ import (
 
 const (
 	selectLoadBalancers = `
-	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.temp, so.origins, so.use_rpc_id, ARRAY_AGG(la.app_id) AS app_ids
+	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.origins, so.use_rpc_id, ARRAY_AGG(la.app_id) AS app_ids
 	FROM loadbalancers AS lb
 	LEFT JOIN stickiness_options AS so ON lb.lb_id=so.lb_id
 	LEFT JOIN lb_apps AS la ON lb.lb_id=la.lb_id
@@ -30,7 +30,6 @@ type dbLoadBalancer struct {
 	Duration          sql.NullString `db:"duration"`
 	RelaysLimit       sql.NullInt64  `db:"relays_limit"`
 	Stickiness        sql.NullBool   `db:"stickiness"`
-	Temp              sql.NullString `db:"temp"`
 	Origins           pq.StringArray `db:"origins"`
 	UseRPCID          sql.NullBool   `db:"use_rpc_id"`
 	AppIDS            sql.NullString `db:"app_ids"`
@@ -51,7 +50,6 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 			Duration:      lb.Duration.String,
 			RelaysLimit:   int(lb.RelaysLimit.Int64),
 			Stickiness:    lb.Stickiness.Bool,
-			Temp:          lb.Temp.String,
 			StickyOrigins: lb.Origins,
 			UseRPCID:      lb.UseRPCID.Bool,
 		},

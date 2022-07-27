@@ -16,14 +16,13 @@ type Blockchain struct {
 	Altruist          string   `json:"altruist"`
 	Blockchain        string   `json:"blockchain"`
 	BlockchainAliases []string `json:"blockchainAliase"`
-	ChainID           string   `json:"chainID`
+	ChainID           string   `json:"chainID"`
 	ChaindIDCheck     string   `json:"chainIDCheck"`
 	Description       string   `json:"description"`
 	Index             int64    `json:"index"`
 	LogLimitBlocks    int64    `json:"logLimitBlocks"`
 	Network           string   `json:"network"`
 	NetworkID         string   `json:"networkID"`
-	NodeCount         int64    `json:"nodeCount"`
 	Path              string   `json:"path"`
 	RequestTimeout    int64    `json:"requestTimeout"`
 	Ticker            string   `json:"ticker"`
@@ -40,7 +39,6 @@ type StickyOptions struct {
 	UseRPCID       bool
 	RelaysLimit    int
 	StickyOrigins  []string
-	Temp           string
 	RpcIDThreshold int
 }
 

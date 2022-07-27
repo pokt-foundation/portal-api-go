@@ -43,7 +43,6 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 		LogLimitBlocks:    b.LogLimitBlocks.Int64,
 		Network:           b.Network.String,
 		NetworkID:         b.NetworkID.String,
-		NodeCount:         b.NodeCount.Int64,
 		Path:              b.Path.String,
 		RequestTimeout:    b.RequestTimeout.Int64,
 		Ticker:            b.Ticker.String,
