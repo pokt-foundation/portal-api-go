@@ -6,29 +6,41 @@ import (
 	"io/ioutil"
 	"path"
 	"strings"
+	"time"
 
 	logger "github.com/sirupsen/logrus"
 )
 
 type Blockchain struct {
-	ID           string   `json:"_id"`
-	BlockchainID string   `json:"blockchain"`
-	ChainID      string   `json:"chainID"`
-	Aliases      []string `json:"blockchainAliases"`
+	ID                string   `json:"id"`
+	Altruist          string   `json:"altruist"`
+	Blockchain        string   `json:"blockchain"`
+	BlockchainAliases []string `json:"blockchainAliase"`
+	ChainID           string   `json:"chainID`
+	ChaindIDCheck     string   `json:"chainIDCheck"`
+	Description       string   `json:"description"`
+	Index             int64    `json:"index"`
+	LogLimitBlocks    int64    `json:"logLimitBlocks"`
+	Network           string   `json:"network"`
+	NetworkID         string   `json:"networkID"`
+	NodeCount         int64    `json:"nodeCount"`
+	Path              string   `json:"path"`
+	RequestTimeout    int64    `json:"requestTimeout"`
+	Ticker            string   `json:"ticker"`
 }
 
 type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID string `json:"id"`
 }
 
 // LBs also contain this struct
 type StickyOptions struct {
 	Stickiness     bool
-	Duration       int
+	Duration       string
 	UseRPCID       bool
 	RelaysLimit    int
 	StickyOrigins  []string
+	Temp           string
 	RpcIDThreshold int
 }
 
@@ -51,8 +63,14 @@ type loadBalancer struct {
 
 // LoadBalancer contains verified fields, e.g. applications
 type LoadBalancer struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	RequestTimeout int64     `json:"requestTimeout"`
+	Gigastake      bool      `json:"gigastake"`
+	UserID         string    `json:"userID"`
+	ApplicationIDs []string  `json:"applicationIDs,omitempty"`
 	// TODO: use map[AppID]*Application instead (to speed-up fetchLoadBalancerApplication routine)
 	Applications []*Application
 	// User []*User
@@ -62,21 +80,21 @@ type LoadBalancer struct {
 }
 
 // TODO: identify fields that should be stored encrypted in-memory
-// TODO: uncomment User, CreatedAt, UpdatedAt fields: this is commented because of formatting issues in mongodb export
 type Application struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Owner string `json:"owner"`
-	// User        string `json:"user"`
-	Description                string `json:"description"`
+	ID                         string     `json:"id"`
+	ContactEmail               string     `json:"contactEmail"`
+	CreatedAt                  *time.Time `json:"createdAt"`
+	Description                string     `json:"description"`
+	Name                       string     `json:"name"`
+	Owner                      string     `json:"owner"`
+	UpdatedAt                  *time.Time `json:"updatedAt"`
+	URL                        string     `json:"url"`
+	UserID                     string     `json:"userID"`
 	PublicPocketAccount        `json:"publicPocketAccount"`
-	FreeTier                   bool `json:"freeTier"`
 	FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
 	FreeTierAAT                `json:"freeTierAAT"`
 	GatewayAAT                 `json:"gatewatAAT"`
 	GatewaySettings            `json:"gatewaySettings"`
-	//CreatedAt string
-	//UpdatedAt string
 }
 
 type PublicPocketAccount struct {
@@ -89,6 +107,7 @@ type FreeTierApplicationAccount struct {
 	PublicKey string `json:"publicKey"`
 	// TODO: likely need to store an encrypted form in memory
 	PrivateKey string `json:"privateKey"`
+	Version    string `json:"version"`
 }
 
 type GatewayAAT struct {
@@ -106,13 +125,14 @@ type FreeTierAAT struct {
 }
 
 type GatewaySettings struct {
-	SecretKey            string              `json:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
-	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
-	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
-	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
-	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty"`
-	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
+	SecretKey           string   `json:"secretKey"`
+	SecretKeyRequired   bool     `json:"secreyKeyRequired"`
+	WhitelistOrigins    []string `json:"whitelistOrigins,omitempty"`
+	WhitelistUserAgents []string `json:"whitelistUserAgents,omitempty"`
+	// TODO: change next two whitelist to use their structs
+	WhitelistContracts   []string `json:"whitelistContracts,omitempty"`
+	WhitelistMethods     []string `json:"whitelistMethods,omitempty"`
+	WhitelistBlockchains []string `json:"whitelistBlockchains,omitempty"`
 }
 
 type WhitelistContract struct {
@@ -208,7 +228,7 @@ type AppStickiness struct {
 func blockchainForAlias(alias string, blockchains []Blockchain) (Blockchain, error) {
 	lowercaseAlias := strings.ToLower(alias)
 	for _, b := range blockchains {
-		for _, alias := range b.Aliases {
+		for _, alias := range b.BlockchainAliases {
 			if strings.ToLower(alias) == lowercaseAlias {
 				return b, nil
 			}

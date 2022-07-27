@@ -4,11 +4,11 @@ import (
 	"database/sql"
 
 	"github.com/lib/pq"
+	"github.com/pokt-foundation/portal-api-go/repository"
 )
 
 const (
-	selectAllBlockchainsScript = "SELECT * FROM blockchains"
-	selectBlockchainByID       = "SELECT * FROM blockchains WHERE blockchain_id = $1"
+	selectBlockchainsScript = "SELECT * FROM blockchains"
 )
 
 type dbBlockchain struct {
@@ -30,9 +30,9 @@ type dbBlockchain struct {
 	Ticker            sql.NullString `db:"ticker"`
 }
 
-func (b *dbBlockchain) toBlockchain() *Blockchain {
-	return &Blockchain{
-		BlockchainID:      b.BlockchainID,
+func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
+	return &repository.Blockchain{
+		ID:                b.BlockchainID,
 		Altruist:          b.Altruist.String,
 		Blockchain:        b.Blockchain.String,
 		BlockchainAliases: b.BlockchainAliases,
@@ -50,51 +50,20 @@ func (b *dbBlockchain) toBlockchain() *Blockchain {
 	}
 }
 
-// Blockchain struct handler representing a Blockchain
-type Blockchain struct {
-	BlockchainID      string
-	Altruist          string
-	Blockchain        string
-	BlockchainAliases []string
-	ChainID           string
-	ChaindIDCheck     string
-	Description       string
-	Index             int64
-	LogLimitBlocks    int64
-	Network           string
-	NetworkID         string
-	NodeCount         int64
-	Path              string
-	RequestTimeout    int64
-	Ticker            string
-}
-
 // ReadBlockchains returns all blockchains on the database
-func (d *PostgresDriver) ReadBlockchains() ([]*Blockchain, error) {
+func (d *PostgresDriver) ReadBlockchains() ([]*repository.Blockchain, error) {
 	var dbBlockchains []*dbBlockchain
 
-	err := d.Select(&dbBlockchains, selectAllBlockchainsScript)
+	err := d.Select(&dbBlockchains, selectBlockchainsScript)
 	if err != nil {
 		return nil, err
 	}
 
-	var blockchains []*Blockchain
+	var blockchains []*repository.Blockchain
 
 	for _, dbBlockchain := range dbBlockchains {
 		blockchains = append(blockchains, dbBlockchain.toBlockchain())
 	}
 
 	return blockchains, nil
-}
-
-// ReadBlockchainByID returns blockchain in the database with given id
-func (d *PostgresDriver) ReadBlockchainByID(id string) (*Blockchain, error) {
-	var dbBlockchain dbBlockchain
-
-	err := d.Get(&dbBlockchain, selectBlockchainByID, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbBlockchain.toBlockchain(), nil
 }
