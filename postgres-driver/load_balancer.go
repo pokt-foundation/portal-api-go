@@ -10,7 +10,7 @@ import (
 
 const (
 	selectLoadBalancers = `
-	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.origins, so.use_rpc_id, ARRAY_AGG(la.app_id) AS app_ids
+	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.origins, so.use_rpc_id, STRING_AGG(la.app_id, ',') AS app_ids
 	FROM loadbalancers AS lb
 	LEFT JOIN stickiness_options AS so ON lb.lb_id=so.lb_id
 	LEFT JOIN lb_apps AS la ON lb.lb_id=la.lb_id
