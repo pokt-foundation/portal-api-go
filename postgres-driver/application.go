@@ -2,6 +2,8 @@ package postgresdriver
 
 import (
 	"database/sql"
+	"encoding/json"
+	"strings"
 
 	"github.com/lib/pq"
 	"github.com/pokt-foundation/portal-api-go/repository"
@@ -51,10 +53,46 @@ type dbApplication struct {
 	SecretKey            sql.NullString `db:"secret_key"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
-	WhitelistContracts   pq.StringArray `db:"whitelist_contracts"`
-	WhitelistMethods     pq.StringArray `db:"whitelist_methods"`
+	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
+	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
+}
+
+func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
+	contracts := []repository.WhitelistContract{}
+
+	if !rawContracts.Valid {
+		return contracts
+	}
+
+	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
+
+	for i, contract := range contracts {
+		for j, inContract := range contract.Contracts {
+			contracts[i].Contracts[j] = strings.TrimSpace(inContract)
+		}
+	}
+
+	return contracts
+}
+
+func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
+	methods := []repository.WhitelistMethod{}
+
+	if !rawMethods.Valid {
+		return methods
+	}
+
+	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
+
+	for i, method := range methods {
+		for j, inMethod := range method.Methods {
+			methods[i].Methods[j] = strings.TrimSpace(inMethod)
+		}
+	}
+
+	return methods
 }
 
 func (a *dbApplication) toApplication() *repository.Application {
@@ -94,8 +132,8 @@ func (a *dbApplication) toApplication() *repository.Application {
 			SecretKey:            a.SecretKey.String,
 			SecretKeyRequired:    a.SecretKeyRequired.Bool,
 			WhitelistBlockchains: a.WhitelistBlockchains,
-			WhitelistContracts:   a.WhitelistContracts,
-			WhitelistMethods:     a.WhitelistMethods,
+			WhitelistContracts:   stringToWhitelistContracts(a.WhitelistContracts),
+			WhitelistMethods:     stringToWhitelistMethods(a.WhitelistMethods),
 			WhitelistOrigins:     a.WhitelistOrigins,
 			WhitelistUserAgents:  a.WhitelistUserAgents,
 		},

@@ -95,8 +95,8 @@ func TestGetApplication(t *testing.T) {
 				GatewaySettings: GatewaySettings{
 					WhitelistOrigins:     []string{},
 					WhitelistUserAgents:  []string{},
-					WhitelistContracts:   []string{},
-					WhitelistMethods:     []string{},
+					WhitelistContracts:   []WhitelistContract{},
+					WhitelistMethods:     []WhitelistMethod{},
 					WhitelistBlockchains: []string{},
 				},
 			},
