@@ -79,7 +79,7 @@ func main() {
 
 	relayerSettings := relay.FreemiumSettings()
 	relayerSettings.DefaultStickyOptions = repository.StickyOptions{
-		Duration:       30,
+		Duration:       "30",
 		UseRPCID:       true,
 		RpcIDThreshold: 2,
 	}

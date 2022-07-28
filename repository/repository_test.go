@@ -31,9 +31,9 @@ func TestGetBlockchain(t *testing.T) {
 			description: "Blockchains are filtered to return the one matching the blockchainID",
 			alias:       "btc-mainnet",
 			expected: Blockchain{
-				ID:           "0002",
-				BlockchainID: "btc-mainnet",
-				Aliases:      []string{"btc-mainnet"},
+				ID:                "0002",
+				Blockchain:        "btc-mainnet",
+				BlockchainAliases: []string{"btc-mainnet"},
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func TestGetApplication(t *testing.T) {
 		{
 			name:        "filter applications",
 			description: "Applications are filtered to return the one matching the ID",
-			id: "4m14c3bttu6818e7kqz3181j",
+			id:          "4m14c3bttu6818e7kqz3181j",
 			expected: Application{
 				ID:          "4m14c3bttu6818e7kqz3181j",
 				Name:        "TEST_DATA_Name_for_4m14c3bttu6818e7kqz3181j",
@@ -88,7 +88,6 @@ func TestGetApplication(t *testing.T) {
 					Address:   "7fce086ea7c04a16654916110d40d341899875ee",
 					PublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",
 				},
-				FreeTier: true,
 				FreeTierApplicationAccount: FreeTierApplicationAccount{
 					Address:   "7fce086ea7c04a16654916110d40d341899875ee",
 					PublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",
