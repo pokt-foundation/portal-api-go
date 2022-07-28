@@ -59,7 +59,7 @@ type loadBalancer struct {
 	StickyOptions
 }
 
-// LoadBalancer contains verified fields, e.g. applications
+// LoadBalancer contains verified fields, e.g. applications (Referred to as Endpoint in Portal UI Backend)
 type LoadBalancer struct {
 	ID             string    `json:"id"`
 	Name           string    `json:"name"`
@@ -101,18 +101,18 @@ type PublicPocketAccount struct {
 }
 
 type FreeTierApplicationAccount struct {
-	Address   string `json:"address"`
-	PublicKey string `json:"publicKey"`
+	Address   string `json:"address" bson:"address"`
+	PublicKey string `json:"publicKey" bson:"publicKey"`
 	// TODO: likely need to store an encrypted form in memory
-	PrivateKey string `json:"privateKey"`
-	Version    string `json:"version"`
+	PrivateKey string `json:"privateKey" bson:"privateKey"`
+	Version    string `json:"version" bson:"version"`
 }
 
 type GatewayAAT struct {
-	Version              string `json:"version"`
-	ApplicationPublicKey string `json:"applicationPublicKey"`
-	ClientPublicKey      string `json:"clientPublicKey"`
-	ApplicationSignature string `json:"applicationSignature"`
+	Version              string `json:"version" bson:"version"`
+	ApplicationPublicKey string `json:"applicationPublicKey" bson:"applicationPublicKey"`
+	ClientPublicKey      string `json:"clientPublicKey" bson:"clientPublicKey"`
+	ApplicationSignature string `json:"applicationSignature" bson:"applicationSignature"`
 }
 
 type FreeTierAAT struct {
@@ -123,13 +123,13 @@ type FreeTierAAT struct {
 }
 
 type GatewaySettings struct {
-	SecretKey            string              `json:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
-	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
-	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
-	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
-	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty"`
-	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
+	SecretKey            string              `json:"secretKey" bson:"secretKey"`
+	SecretKeyRequired    bool                `json:"secreyKeyRequired" bson:"secreyKeyRequired"`
+	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty" bson:"whitelistOrigins,omitempty"`
+	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty" bson:"whitelistUserAgents,omitempty"`
+	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty" bson:"whitelistContracts,omitempty"`
+	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty" bson:"whitelistMethods,omitempty"`
+	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty" bson:"whitelistBlockchains,omitempty"`
 }
 
 type WhitelistContract struct {
