@@ -27,8 +27,13 @@ type Application struct {
 	Description                string                     `json:"description"`
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
+<<<<<<< HEAD
 	Dummy                      bool                       `json:"dummy"`
 	MaxRelays                  int                        `json:"maxRelays"`
+=======
+	MaxRelays                  int64                      `json:"maxRelays"`
+	Dummy                      bool                       `json:"dummy"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
@@ -36,8 +41,13 @@ type Application struct {
 	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
 	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
 	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
+<<<<<<< HEAD
 	CreatedAt                  time.Time                  `json:"createdAt"`
 	UpdatedAt                  time.Time                  `json:"updatedAt"`
+=======
+	CreatedAt                  *time.Time                 `json:"createdAt"`
+	UpdatedAt                  *time.Time                 `json:"updatedAt"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 }
 
 type FreeTierAAT struct {
@@ -100,7 +110,11 @@ type Blockchain struct {
 	Altruist          string           `json:"altruist"`
 	Blockchain        string           `json:"blockchain"`
 	ChainID           string           `json:"chainID"`
+<<<<<<< HEAD
 	ChainIDCheck      string           `json:"chainIDCheck"`
+=======
+	ChaindIDCheck     string           `json:"chainIDCheck"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 	Description       string           `json:"description"`
 	EnforceResult     string           `json:"enforceResult"`
 	Network           string           `json:"network"`
@@ -108,11 +122,19 @@ type Blockchain struct {
 	Path              string           `json:"path"`
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
+<<<<<<< HEAD
 	BlockchainAliases []string         `json:"blockchainAliases"`
 	RequestTimeout    int              `json:"requestTimeout"`
 	Index             int              `json:"index"`
 	LogLimitBlocks    int              `json:"logLimitBlocks"`
 	SyncAllowance     int              `json:"syncAllowance"`
+=======
+	BlockchainAliases []string         `json:"blockchainAliase"`
+	Index             int64            `json:"index"`
+	LogLimitBlocks    int64            `json:"logLimitBlocks"`
+	RequestTimeout    int64            `json:"requestTimeout"`
+	SyncAllowance     int64            `json:"syncAllowance"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 	Active            bool             `json:"active"`
 	Redirects         []Redirects      `json:"redirects"`
 	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
@@ -129,7 +151,11 @@ type SyncCheckOptions struct {
 	Body      string `json:"body"`
 	ResultKey string `json:"resultKey"`
 	Path      string `json:"path"`
+<<<<<<< HEAD
 	Allowance int    `json:"allowance"`
+=======
+	Allowance int64  `json:"allowance"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 }
 
 // loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
@@ -142,13 +168,21 @@ type loadBalancer struct {
 	StickyOptions StickyOptions `json:"stickinessOptions"`
 }
 
+<<<<<<< HEAD
 // LoadBalancer contains verified fields, e.g. applications (referred to as Endpoints on the Portal UI frontend/API)
+=======
+// LoadBalancer contains verified fields, e.g. applications (Referred to as Endpoint in Portal UI Backend)
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 type LoadBalancer struct {
 	ID             string   `json:"id"`
 	Name           string   `json:"name"`
 	UserID         string   `json:"userID"`
 	ApplicationIDs []string `json:"applicationIDs,omitempty"`
+<<<<<<< HEAD
 	RequestTimeout int      `json:"requestTimeout"`
+=======
+	RequestTimeout int64    `json:"requestTimeout"`
+>>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
 	Gigastake      bool     `json:"gigastake"`
 	// TODO: this likely needs to be replaced with gigastake apps
 	GigastakeRedirect bool          `json:"gigastakeRedirect"`
