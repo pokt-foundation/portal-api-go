@@ -28,35 +28,44 @@ const (
 
 type dbApplication struct {
 	ApplicationID        string         `db:"application_id"`
-	ContactEmail         sql.NullString `db:"contact_email"`
-	CreatedAt            sql.NullTime   `db:"created_at"`
-	Description          sql.NullString `db:"description"`
-	Name                 sql.NullString `db:"name"`
-	Owner                sql.NullString `db:"owner"`
-	UpdatedAt            sql.NullTime   `db:"updated_at"`
-	URL                  sql.NullString `db:"url"`
 	UserID               sql.NullString `db:"user_id"`
+	Name                 sql.NullString `db:"name"`
+	Status               sql.NullString `db:"status"`
+	ContactEmail         sql.NullString `db:"contact_email"`
+	Description          sql.NullString `db:"description"`
 	FAPublicKey          sql.NullString `db:"fa_public_key"`
 	FASignature          sql.NullString `db:"fa_signature"`
 	FAClientPublicKey    sql.NullString `db:"fa_client_public_key"`
 	FAVersion            sql.NullString `db:"fa_version"`
-	GAPublicKey          sql.NullString `db:"ga_public_key"`
-	GASignature          sql.NullString `db:"ga_signature"`
-	GAClientPublicKey    sql.NullString `db:"ga_client_public_key"`
-	GAVersion            sql.NullString `db:"ga_version"`
 	FACPublicKey         sql.NullString `db:"fac_public_key"`
 	FACAdress            sql.NullString `db:"fac_address"`
 	FACPrivateKey        sql.NullString `db:"fac_private_key"`
 	FACVersion           sql.NullString `db:"fac_version"`
+	GAPublicKey          sql.NullString `db:"ga_public_key"`
+	GASignature          sql.NullString `db:"ga_signature"`
+	GAClientPublicKey    sql.NullString `db:"ga_client_public_key"`
+	GAVersion            sql.NullString `db:"ga_version"`
+	Owner                sql.NullString `db:"owner"`
 	PAPublicKey          sql.NullString `db:"pa_public_key"`
 	PAAdress             sql.NullString `db:"pa_address"`
 	SecretKey            sql.NullString `db:"secret_key"`
-	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
-	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
+	URL                  sql.NullString `db:"url"`
 	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
 	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
+	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
+	MaxRelays            sql.NullInt64  `db:"max_relays"`
+	Dummy                sql.NullBool   `db:"dummy"`
+	FreeTier             sql.NullBool   `db:"free_tier"`
+	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
+	SignedUp             sql.NullBool   `db:"signed_up"`
+	Quarter              sql.NullBool   `db:"quarter"`
+	Half                 sql.NullBool   `db:"half"`
+	ThreeQuarters        sql.NullBool   `db:"three_quarters"`
+	Full                 sql.NullBool   `db:"full"`
+	CreatedAt            sql.NullTime   `db:"created_at"`
+	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
 
 func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
@@ -98,17 +107,23 @@ func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistM
 func (a *dbApplication) toApplication() *repository.Application {
 	return &repository.Application{
 		ID:           a.ApplicationID,
-		ContactEmail: a.ContactEmail.String,
-		CreatedAt:    &a.CreatedAt.Time,
-		Description:  a.Description.String,
-		Name:         a.Name.String,
-		Owner:        a.Owner.String,
-		UpdatedAt:    &a.UpdatedAt.Time,
-		URL:          a.URL.String,
 		UserID:       a.UserID.String,
-		PublicPocketAccount: repository.PublicPocketAccount{
-			PublicKey: a.PAPublicKey.String,
-			Address:   a.PAAdress.String,
+		Name:         a.Name.String,
+		Status:       a.Status.String,
+		ContactEmail: a.ContactEmail.String,
+		Description:  a.Description.String,
+		Owner:        a.Owner.String,
+		URL:          a.URL.String,
+		MaxRelays:    a.MaxRelays.Int64,
+		Dummy:        a.Dummy.Bool,
+		FreeTier:     a.FreeTier.Bool,
+		CreatedAt:    &a.CreatedAt.Time,
+		UpdatedAt:    &a.UpdatedAt.Time,
+		FreeTierAAT: repository.FreeTierAAT{
+			ApplicationPublicKey: a.FAPublicKey.String,
+			ApplicationSignature: a.FASignature.String,
+			ClientPublicKey:      a.FAClientPublicKey.String,
+			Version:              a.FAVersion.String,
 		},
 		FreeTierApplicationAccount: repository.FreeTierApplicationAccount{
 			Address:    a.FACAdress.String,
@@ -116,17 +131,11 @@ func (a *dbApplication) toApplication() *repository.Application {
 			PrivateKey: a.FACPrivateKey.String,
 			Version:    a.FACVersion.String,
 		},
-		FreeTierAAT: repository.FreeTierAAT{
-			Version:              a.FAVersion.String,
-			ApplicationPublicKey: a.FAPublicKey.String,
-			ClientPublicKey:      a.FAClientPublicKey.String,
-			ApplicationSignature: a.FASignature.String,
-		},
 		GatewayAAT: repository.GatewayAAT{
-			Version:              a.GAVersion.String,
 			ApplicationPublicKey: a.GAPublicKey.String,
-			ClientPublicKey:      a.GAClientPublicKey.String,
 			ApplicationSignature: a.GASignature.String,
+			ClientPublicKey:      a.GAClientPublicKey.String,
+			Version:              a.GAVersion.String,
 		},
 		GatewaySettings: repository.GatewaySettings{
 			SecretKey:            a.SecretKey.String,
@@ -136,6 +145,17 @@ func (a *dbApplication) toApplication() *repository.Application {
 			WhitelistMethods:     stringToWhitelistMethods(a.WhitelistMethods),
 			WhitelistOrigins:     a.WhitelistOrigins,
 			WhitelistUserAgents:  a.WhitelistUserAgents,
+		},
+		NotificationSettings: repository.NotificationSettings{
+			SignedUp:      a.SignedUp.Bool,
+			Quarter:       a.Quarter.Bool,
+			Half:          a.Half.Bool,
+			ThreeQuarters: a.ThreeQuarters.Bool,
+			Full:          a.Full.Bool,
+		},
+		PublicPocketAccount: repository.PublicPocketAccount{
+			PublicKey: a.PAPublicKey.String,
+			Address:   a.PAAdress.String,
 		},
 	}
 }
