@@ -28,7 +28,11 @@ type Application struct {
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
 	Dummy                      bool                       `json:"dummy"`
+<<<<<<< HEAD
 	MaxRelays                  int                        `json:"maxRelays"`
+=======
+	MaxRelays                  int64                      `json:"maxRelays"`
+>>>>>>> ee537dc (feat: minor repository changes)
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
