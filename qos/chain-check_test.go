@@ -32,7 +32,7 @@ func TestNodeSupportsChain(t *testing.T) {
 				},
 			},
 			blockchain: repository.Blockchain{
-				ChainID: 18, // 0x12
+				ChainID: "18", // 0x12
 			},
 			expected: true,
 		},
@@ -44,7 +44,7 @@ func TestNodeSupportsChain(t *testing.T) {
 				},
 			},
 			blockchain: repository.Blockchain{
-				ChainID: 1000, // != 0x12
+				ChainID: "1000", // != 0x12
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func TestNodeSupportsChain(t *testing.T) {
 }
 
 func TestNodesSupportingChain(t *testing.T) {
-	blockchain := repository.Blockchain{ChainID: 18} // 0x12
+	blockchain := repository.Blockchain{ChainID: "18"} // 0x12
 	aat := &provider.PocketAAT{
 		AppPubKey:    "applicationPublicKey",
 		ClientPubKey: "clientPublicKey",
