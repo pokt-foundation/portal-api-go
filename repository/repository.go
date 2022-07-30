@@ -27,8 +27,8 @@ type Application struct {
 	Description                string                     `json:"description"`
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
-	MaxRelays                  int64                      `json:"maxRelays"`
 	Dummy                      bool                       `json:"dummy"`
+	MaxRelays                  int64                      `json:"maxRelays"`
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
@@ -36,8 +36,8 @@ type Application struct {
 	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
 	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
 	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
-	CreatedAt                  *time.Time                 `json:"createdAt"`
-	UpdatedAt                  *time.Time                 `json:"updatedAt"`
+	CreatedAt                  time.Time                  `json:"createdAt"`
+	UpdatedAt                  time.Time                  `json:"updatedAt"`
 }
 
 type FreeTierAAT struct {
