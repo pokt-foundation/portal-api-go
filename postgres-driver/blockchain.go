@@ -55,12 +55,16 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
+=======
+>>>>>>> 845a989 (feat: tweaks to chain fields and reconciling types.)
 		Index:             int(b.Index.Int32),
 		LogLimitBlocks:    int(b.LogLimitBlocks.Int32),
 		RequestTimeout:    int(b.RequestTimeout.Int32),
 		SyncAllowance:     int(b.SyncAllowance.Int32),
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 =======
@@ -75,11 +79,14 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 >>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 =======
 >>>>>>> 267f8ed (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
+=======
+>>>>>>> 845a989 (feat: tweaks to chain fields and reconciling types.)
 		Active:            b.Active.Bool,
 		SyncCheckOptions: repository.SyncCheckOptions{
 			Body:      b.Body.String,
 			ResultKey: b.ResultKey.String,
 			Path:      b.Path.String,
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -93,6 +100,9 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 =======
 			Allowance: b.Allowance.Int64,
 >>>>>>> 267f8ed (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
+=======
+			Allowance: int(b.Allowance.Int32),
+>>>>>>> 845a989 (feat: tweaks to chain fields and reconciling types.)
 		},
 	}
 }
