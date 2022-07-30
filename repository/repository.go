@@ -109,17 +109,10 @@ type Blockchain struct {
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
 	BlockchainAliases []string         `json:"blockchainAliases"`
-<<<<<<< HEAD
 	RequestTimeout    int              `json:"requestTimeout"`
 	Index             int              `json:"index"`
 	LogLimitBlocks    int              `json:"logLimitBlocks"`
 	SyncAllowance     int              `json:"syncAllowance"`
-=======
-	Index             int64            `json:"index"`
-	LogLimitBlocks    int64            `json:"logLimitBlocks"`
-	RequestTimeout    int64            `json:"requestTimeout"`
-	SyncAllowance     int64            `json:"syncAllowance"`
->>>>>>> 2f86088 (Fix: typo.)
 	Active            bool             `json:"active"`
 	Redirects         []Redirects      `json:"redirects"`
 	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
