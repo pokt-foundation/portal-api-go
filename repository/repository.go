@@ -28,7 +28,7 @@ type Application struct {
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
 	Dummy                      bool                       `json:"dummy"`
-	MaxRelays                  int64                      `json:"maxRelays"`
+	MaxRelays                  int                        `json:"maxRelays"`
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
@@ -100,7 +100,7 @@ type Blockchain struct {
 	Altruist          string           `json:"altruist"`
 	Blockchain        string           `json:"blockchain"`
 	ChainID           string           `json:"chainID"`
-	ChaindIDCheck     string           `json:"chainIDCheck"`
+	ChainIDCheck      string           `json:"chainIDCheck"`
 	Description       string           `json:"description"`
 	EnforceResult     string           `json:"enforceResult"`
 	Network           string           `json:"network"`
@@ -109,10 +109,10 @@ type Blockchain struct {
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
 	BlockchainAliases []string         `json:"blockchainAliases"`
-	Index             int64            `json:"index"`
-	LogLimitBlocks    int64            `json:"logLimitBlocks"`
-	RequestTimeout    int64            `json:"requestTimeout"`
-	SyncAllowance     int64            `json:"syncAllowance"`
+	RequestTimeout    int              `json:"requestTimeout"`
+	Index             int              `json:"index"`
+	LogLimitBlocks    int              `json:"logLimitBlocks"`
+	SyncAllowance     int              `json:"syncAllowance"`
 	Active            bool             `json:"active"`
 	Redirects         []Redirects      `json:"redirects"`
 	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
@@ -129,7 +129,7 @@ type SyncCheckOptions struct {
 	Body      string `json:"body"`
 	ResultKey string `json:"resultKey"`
 	Path      string `json:"path"`
-	Allowance int64  `json:"allowance"`
+	Allowance int    `json:"allowance"`
 }
 
 // loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
@@ -148,7 +148,7 @@ type LoadBalancer struct {
 	Name           string   `json:"name"`
 	UserID         string   `json:"userID"`
 	ApplicationIDs []string `json:"applicationIDs,omitempty"`
-	RequestTimeout int64    `json:"requestTimeout"`
+	RequestTimeout int      `json:"requestTimeout"`
 	Gigastake      bool     `json:"gigastake"`
 	// TODO: this likely needs to be replaced with gigastake apps
 	GigastakeRedirect bool          `json:"gigastakeRedirect"`

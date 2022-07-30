@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/pokt-foundation/pocket-go/provider"
 	"github.com/pokt-foundation/pocket-go/relayer"
@@ -55,7 +54,7 @@ func (c nodeChecker) NodesSupportingApp(ctx context.Context, app *repository.App
 		running++
 		go func(results chan *chainCheckResult, blockchain *repository.Blockchain) {
 			log := c.Logger.WithFields(logger.Fields{"Application": app, "Chain": chain})
-			session, err := c.SessionRetriever(ctx, app, chain.BlockchainID)
+			session, err := c.SessionRetriever(ctx, app, chain.ChainID)
 			if err != nil {
 				log.WithFields(logger.Fields{"Error": err}).Warn("Error getting session")
 				results <- nil
@@ -139,10 +138,7 @@ func (n nodeChecker) nodeSupportsChain(aat *provider.PocketAAT, blockchain *repo
 		return false, fmt.Errorf("Error relaying: %w", err)
 	}
 
-	chainID, err := strconv.ParseInt(r.RelayOutput.Response, 0, 64)
-	if err != nil {
-		return false, fmt.Errorf("Error parsing relay response: %w", err)
-	}
+	chainID := r.RelayOutput.Response
 
 	return chainID == blockchain.ChainID, nil
 }
