@@ -108,7 +108,7 @@ type Blockchain struct {
 	Path              string           `json:"path"`
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
-	BlockchainAliases []string         `json:"blockchainAliase"`
+	BlockchainAliases []string         `json:"blockchainAliases"`
 	Index             int64            `json:"index"`
 	LogLimitBlocks    int64            `json:"logLimitBlocks"`
 	RequestTimeout    int64            `json:"requestTimeout"`
