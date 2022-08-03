@@ -16,18 +16,25 @@ type dbBlockchain struct {
 	BlockchainID      string         `db:"blockchain_id"`
 	Altruist          sql.NullString `db:"altruist"`
 	Blockchain        sql.NullString `db:"blockchain"`
-	BlockchainAliases pq.StringArray `db:"blockchain_aliases"`
+	Body              sql.NullString `db:"body"`
 	ChainID           sql.NullString `db:"chain_id"`
-	ChaindIDCheck     sql.NullString `db:"chain_id_check"`
+	ChainIDCheck      sql.NullString `db:"chain_id_check"`
 	Description       sql.NullString `db:"description"`
-	Index             sql.NullInt64  `db:"_index"`
-	LogLimitBlocks    sql.NullInt64  `db:"log_limit_blocks"`
+	EnforceResult     sql.NullString `db:"enforce_result"`
 	Network           sql.NullString `db:"network"`
 	NetworkID         sql.NullString `db:"network_id"`
-	NodeCount         sql.NullInt64  `db:"node_count"`
 	Path              sql.NullString `db:"_path"`
-	RequestTimeout    sql.NullInt64  `db:"request_timeout"`
+	ResultKey         sql.NullString `db:"result_key"`
+	SyncCheck         sql.NullString `db:"sync_check"`
 	Ticker            sql.NullString `db:"ticker"`
+	BlockchainAliases pq.StringArray `db:"blockchain_aliases"`
+	Index             sql.NullInt32  `db:"_index"`
+	LogLimitBlocks    sql.NullInt32  `db:"log_limit_blocks"`
+	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
+	SyncAllowance     sql.NullInt32  `db:"sync_allowance"`
+	NodeCount         sql.NullInt32  `db:"node_count"`
+	Allowance         sql.NullInt32  `db:"active"`
+	Active            sql.NullBool   `db:"active"`
 }
 
 func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
@@ -35,17 +42,27 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 		ID:                b.BlockchainID,
 		Altruist:          b.Altruist.String,
 		Blockchain:        b.Blockchain.String,
-		BlockchainAliases: b.BlockchainAliases,
 		ChainID:           b.ChainID.String,
-		ChaindIDCheck:     b.ChaindIDCheck.String,
+		ChainIDCheck:      b.ChainIDCheck.String,
 		Description:       b.Description.String,
-		Index:             b.Index.Int64,
-		LogLimitBlocks:    b.LogLimitBlocks.Int64,
+		EnforceResult:     b.EnforceResult.String,
 		Network:           b.Network.String,
 		NetworkID:         b.NetworkID.String,
 		Path:              b.Path.String,
-		RequestTimeout:    b.RequestTimeout.Int64,
+		SyncCheck:         b.SyncCheck.String,
 		Ticker:            b.Ticker.String,
+		BlockchainAliases: b.BlockchainAliases,
+		Index:             int(b.Index.Int32),
+		LogLimitBlocks:    int(b.LogLimitBlocks.Int32),
+		RequestTimeout:    int(b.RequestTimeout.Int32),
+		SyncAllowance:     int(b.SyncAllowance.Int32),
+		Active:            b.Active.Bool,
+		SyncCheckOptions: repository.SyncCheckOptions{
+			Body:      b.Body.String,
+			ResultKey: b.ResultKey.String,
+			Path:      b.Path.String,
+			Allowance: int(b.Allowance.Int32),
+		},
 	}
 }
 
