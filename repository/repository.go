@@ -142,7 +142,11 @@ type loadBalancer struct {
 	StickyOptions StickyOptions `json:"stickinessOptions"`
 }
 
+<<<<<<< HEAD
 // LoadBalancer contains verified fields, e.g. applications (referred to as Endpoints on the Portal UI frontend/API)
+=======
+// LoadBalancer contains verified fields, e.g. applications (referred to as Endpoint on the Portal UI frontend/API)
+>>>>>>> 72d4414 (fix: signed commit)
 type LoadBalancer struct {
 	ID             string   `json:"id"`
 	Name           string   `json:"name"`
