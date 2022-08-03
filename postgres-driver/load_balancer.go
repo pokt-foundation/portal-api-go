@@ -20,39 +20,39 @@ const (
 
 type dbLoadBalancer struct {
 	LbID              string         `db:"lb_id"`
+	Duration          sql.NullString `db:"duration"`
 	Name              sql.NullString `db:"name"`
-	CreatedAt         sql.NullTime   `db:"created_at"`
-	UpdatedAt         sql.NullTime   `db:"updated_at"`
-	RequestTimeout    sql.NullInt64  `db:"request_timeout"`
+	UserID            sql.NullString `db:"user_id"`
+	AppIDS            sql.NullString `db:"app_ids"`
+	Origins           pq.StringArray `db:"origins"`
+	RelaysLimit       sql.NullInt32  `db:"relays_limit"`
+	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
 	Gigastake         sql.NullBool   `db:"gigastake"`
 	GigastakeRedirect sql.NullBool   `db:"gigastake_redirect"`
-	UserID            sql.NullString `db:"user_id"`
-	Duration          sql.NullString `db:"duration"`
-	RelaysLimit       sql.NullInt64  `db:"relays_limit"`
 	Stickiness        sql.NullBool   `db:"stickiness"`
-	Origins           pq.StringArray `db:"origins"`
 	UseRPCID          sql.NullBool   `db:"use_rpc_id"`
-	AppIDS            sql.NullString `db:"app_ids"`
+	CreatedAt         sql.NullTime   `db:"created_at"`
+	UpdatedAt         sql.NullTime   `db:"updated_at"`
 }
 
 func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 	return &repository.LoadBalancer{
 		ID:                lb.LbID,
 		Name:              lb.Name.String,
-		CreatedAt:         lb.CreatedAt.Time,
-		UpdatedAt:         lb.UpdatedAt.Time,
-		RequestTimeout:    lb.RequestTimeout.Int64,
-		Gigastake:         lb.Gigastake.Bool,
-		GigastakeRedirect: lb.GigastakeRedirect.Bool,
 		UserID:            lb.UserID.String,
 		ApplicationIDs:    strings.Split(lb.AppIDS.String, ","),
+		RequestTimeout:    int(lb.RequestTimeout.Int32),
+		Gigastake:         lb.Gigastake.Bool,
+		GigastakeRedirect: lb.GigastakeRedirect.Bool,
 		StickyOptions: repository.StickyOptions{
 			Duration:      lb.Duration.String,
-			RelaysLimit:   int(lb.RelaysLimit.Int64),
-			Stickiness:    lb.Stickiness.Bool,
 			StickyOrigins: lb.Origins,
+			RelaysLimit:   int(lb.RelaysLimit.Int32),
+			Stickiness:    lb.Stickiness.Bool,
 			UseRPCID:      lb.UseRPCID.Bool,
 		},
+		CreatedAt: lb.CreatedAt.Time,
+		UpdatedAt: lb.UpdatedAt.Time,
 	}
 }
 

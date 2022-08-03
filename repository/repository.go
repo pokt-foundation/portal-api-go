@@ -11,108 +11,33 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-type Blockchain struct {
-	ID                string   `json:"id"`
-	Altruist          string   `json:"altruist"`
-	Blockchain        string   `json:"blockchain"`
-	BlockchainAliases []string `json:"blockchainAliase"`
-	ChainID           string   `json:"chainID"`
-	ChaindIDCheck     string   `json:"chainIDCheck"`
-	Description       string   `json:"description"`
-	Index             int64    `json:"index"`
-	LogLimitBlocks    int64    `json:"logLimitBlocks"`
-	Network           string   `json:"network"`
-	NetworkID         string   `json:"networkID"`
-	Path              string   `json:"path"`
-	RequestTimeout    int64    `json:"requestTimeout"`
-	Ticker            string   `json:"ticker"`
-}
-
-type User struct {
-	ID string `json:"id"`
-}
-
-// LBs also contain this struct
-type StickyOptions struct {
-	Stickiness     bool
-	Duration       string
-	UseRPCID       bool
-	RelaysLimit    int
-	StickyOrigins  []string
-	RpcIDThreshold int
-}
-
-func (s *StickyOptions) IsEmpty() bool {
-	if !s.Stickiness {
-		return true
-	}
-	return len(s.StickyOrigins) == 0
-}
-
-// loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
-type loadBalancer struct {
-	ID             string   `json:"id"`
-	Name           string   `json:"name"`
-	ApplicationIDs []string `json:"applicationIDs"`
-	// User []*User
-	// TODO: load from db table/view
-	StickyOptions
-}
-
-// LoadBalancer contains verified fields, e.g. applications (Referred to as Endpoint in Portal UI Backend)
-type LoadBalancer struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
-	RequestTimeout int64     `json:"requestTimeout"`
-	Gigastake      bool      `json:"gigastake"`
-	UserID         string    `json:"userID"`
-	ApplicationIDs []string  `json:"applicationIDs,omitempty"`
-	// TODO: use map[AppID]*Application instead (to speed-up fetchLoadBalancerApplication routine)
-	Applications []*Application
-	// User []*User
-	StickyOptions
-	// TODO: this likely needs to be replaced with gigastake apps
-	GigastakeRedirect bool
+type Repository interface {
+	GetApplication(id string) (Application, error)
+	GetBlockchain(alias string) (Blockchain, error)
+	GetLoadBalancer(id string) (LoadBalancer, error)
 }
 
 // TODO: identify fields that should be stored encrypted in-memory
 type Application struct {
-	ID                         string     `json:"id"`
-	ContactEmail               string     `json:"contactEmail"`
-	CreatedAt                  *time.Time `json:"createdAt"`
-	Description                string     `json:"description"`
-	Name                       string     `json:"name"`
-	Owner                      string     `json:"owner"`
-	UpdatedAt                  *time.Time `json:"updatedAt"`
-	URL                        string     `json:"url"`
-	UserID                     string     `json:"userID"`
-	PublicPocketAccount        `json:"publicPocketAccount"`
-	FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
-	FreeTierAAT                `json:"freeTierAAT"`
-	GatewayAAT                 `json:"gatewatAAT"`
-	GatewaySettings            `json:"gatewaySettings"`
-}
-
-type PublicPocketAccount struct {
-	Address   string `json:"address"`
-	PublicKey string `json:"publicKey"`
-}
-
-type FreeTierApplicationAccount struct {
-	Address   string `json:"address" bson:"address"`
-	PublicKey string `json:"publicKey" bson:"publicKey"`
-	// TODO: likely need to store an encrypted form in memory
-	PrivateKey string `json:"privateKey" bson:"privateKey"`
-	Version    string `json:"version" bson:"version"`
-}
-
-type GatewayAAT struct {
-	Version              string `json:"version" bson:"version"`
-	ApplicationPublicKey string `json:"applicationPublicKey" bson:"applicationPublicKey"`
-	ClientPublicKey      string `json:"clientPublicKey" bson:"clientPublicKey"`
-	ApplicationSignature string `json:"applicationSignature" bson:"applicationSignature"`
+	ID                         string                     `json:"id"`
+	UserID                     string                     `json:"userID"`
+	Name                       string                     `json:"name"`
+	Status                     string                     `json:"status"`
+	ContactEmail               string                     `json:"contactEmail"`
+	Description                string                     `json:"description"`
+	Owner                      string                     `json:"owner"`
+	URL                        string                     `json:"url"`
+	Dummy                      bool                       `json:"dummy"`
+	MaxRelays                  int                        `json:"maxRelays"`
+	FreeTier                   bool                       `json:"freeTier"`
+	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
+	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
+	GatewayAAT                 GatewayAAT                 `json:"gatewatAAT"`
+	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
+	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
+	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
+	CreatedAt                  time.Time                  `json:"createdAt"`
+	UpdatedAt                  time.Time                  `json:"updatedAt"`
 }
 
 type FreeTierAAT struct {
@@ -122,14 +47,29 @@ type FreeTierAAT struct {
 	ApplicationSignature string `json:"applicationSignature"`
 }
 
+type FreeTierApplicationAccount struct {
+	Address   string `json:"address"`
+	PublicKey string `json:"publicKey"`
+	// TODO: likely need to store an encrypted form in memory
+	PrivateKey string `json:"privateKey"`
+	Version    string `json:"version"`
+}
+
+type GatewayAAT struct {
+	ApplicationPublicKey string `json:"applicationPublicKey"`
+	ApplicationSignature string `json:"applicationSignature"`
+	ClientPublicKey      string `json:"clientPublicKey"`
+	Version              string `json:"version"`
+}
+
 type GatewaySettings struct {
-	SecretKey            string              `json:"secretKey" bson:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired" bson:"secreyKeyRequired"`
-	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty" bson:"whitelistOrigins,omitempty"`
-	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty" bson:"whitelistUserAgents,omitempty"`
-	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty" bson:"whitelistContracts,omitempty"`
-	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty" bson:"whitelistMethods,omitempty"`
-	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty" bson:"whitelistBlockchains,omitempty"`
+	SecretKey            string              `json:"secretKey"`
+	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
+	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
+	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
+	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
+	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty"`
+	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
 }
 
 type WhitelistContract struct {
@@ -142,10 +82,108 @@ type WhitelistMethod struct {
 	Methods      []string `json:"methods"`
 }
 
-type Repository interface {
-	GetApplication(id string) (Application, error)
-	GetBlockchain(alias string) (Blockchain, error)
-	GetLoadBalancer(id string) (LoadBalancer, error)
+type NotificationSettings struct {
+	SignedUp      bool `json:"signedUp"`
+	Quarter       bool `json:"quarter"`
+	Half          bool `json:"half"`
+	ThreeQuarters bool `json:"threeQuarters"`
+	Full          bool `json:"full"`
+}
+
+type PublicPocketAccount struct {
+	Address   string `json:"address"`
+	PublicKey string `json:"publicKey"`
+}
+
+type Blockchain struct {
+	ID                string           `json:"id"`
+	Altruist          string           `json:"altruist"`
+	Blockchain        string           `json:"blockchain"`
+	ChainID           string           `json:"chainID"`
+	ChainIDCheck      string           `json:"chainIDCheck"`
+	Description       string           `json:"description"`
+	EnforceResult     string           `json:"enforceResult"`
+	Network           string           `json:"network"`
+	NetworkID         string           `json:"networkID"`
+	Path              string           `json:"path"`
+	SyncCheck         string           `json:"syncCheck"`
+	Ticker            string           `json:"ticker"`
+	BlockchainAliases []string         `json:"blockchainAliases"`
+	RequestTimeout    int              `json:"requestTimeout"`
+	Index             int              `json:"index"`
+	LogLimitBlocks    int              `json:"logLimitBlocks"`
+	SyncAllowance     int              `json:"syncAllowance"`
+	Active            bool             `json:"active"`
+	Redirects         []Redirects      `json:"redirects"`
+	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
+}
+
+// TODO - Figure out how to handle Redirects field in Postgres
+type Redirects struct {
+	Alias          string `json:"alias"`
+	Domain         string `json:"domain"`
+	LoadBalancerID string `json:"loadBalancerID"`
+}
+
+type SyncCheckOptions struct {
+	Body      string `json:"body"`
+	ResultKey string `json:"resultKey"`
+	Path      string `json:"path"`
+	Allowance int    `json:"allowance"`
+}
+
+// loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
+type loadBalancer struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	ApplicationIDs []string `json:"applicationIDs"`
+	// User []*User
+	// TODO: load from db table/view
+	StickyOptions StickyOptions `json:"stickinessOptions"`
+}
+
+// LoadBalancer contains verified fields, e.g. applications (referred to as Endpoints on the Portal UI frontend/API)
+type LoadBalancer struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	UserID         string   `json:"userID"`
+	ApplicationIDs []string `json:"applicationIDs,omitempty"`
+	RequestTimeout int      `json:"requestTimeout"`
+	Gigastake      bool     `json:"gigastake"`
+	// TODO: this likely needs to be replaced with gigastake apps
+	GigastakeRedirect bool          `json:"gigastakeRedirect"`
+	StickyOptions     StickyOptions `json:"stickinessOptions"`
+	// TODO: use map[AppID]*Application instead (to speed-up fetchLoadBalancerApplication routine)
+	Applications []*Application
+	// User []*User
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type StickyOptions struct {
+	Duration       string   `json:"duration"`
+	StickyOrigins  []string `json:"stickyOrigins"`
+	RelaysLimit    int      `json:"relaysLimit"`
+	RpcIDThreshold int
+	Stickiness     bool `json:"stickiness"`
+	StickinessTemp bool `json:"stickinessTemp"`
+	UseRPCID       bool `json:"useRPCID"`
+}
+
+func (s *StickyOptions) IsEmpty() bool {
+	if !s.Stickiness {
+		return true
+	}
+	return len(s.StickyOrigins) == 0
+}
+
+type User struct {
+	ID string `json:"id"`
+}
+
+type AppStickiness struct {
+	ApplicationID string
+	NodeAddress   string
 }
 
 func NewRepository(jsonFilesPath string, log *logger.Logger) (Repository, error) {
@@ -215,11 +253,6 @@ func (c *cachingRepository) GetLoadBalancer(id string) (LoadBalancer, error) {
 	}
 
 	return LoadBalancer{}, fmt.Errorf("No loadbalancers found matching %s", id)
-}
-
-type AppStickiness struct {
-	ApplicationID string
-	NodeAddress   string
 }
 
 func blockchainForAlias(alias string, blockchains []Blockchain) (Blockchain, error) {
