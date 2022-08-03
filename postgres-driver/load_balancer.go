@@ -25,18 +25,8 @@ type dbLoadBalancer struct {
 	UserID            sql.NullString `db:"user_id"`
 	AppIDS            sql.NullString `db:"app_ids"`
 	Origins           pq.StringArray `db:"origins"`
-<<<<<<< HEAD
-<<<<<<< HEAD
 	RelaysLimit       sql.NullInt32  `db:"relays_limit"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
-=======
-	RelaysLimit       sql.NullInt64  `db:"relays_limit"`
-	RequestTimeout    sql.NullInt64  `db:"request_timeout"`
->>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
-=======
-	RelaysLimit       sql.NullInt32  `db:"relays_limit"`
-	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
->>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 	Gigastake         sql.NullBool   `db:"gigastake"`
 	GigastakeRedirect sql.NullBool   `db:"gigastake_redirect"`
 	Stickiness        sql.NullBool   `db:"stickiness"`
@@ -51,29 +41,13 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 		Name:              lb.Name.String,
 		UserID:            lb.UserID.String,
 		ApplicationIDs:    strings.Split(lb.AppIDS.String, ","),
-<<<<<<< HEAD
-<<<<<<< HEAD
 		RequestTimeout:    int(lb.RequestTimeout.Int32),
-=======
-		RequestTimeout:    lb.RequestTimeout.Int64,
->>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
-=======
-		RequestTimeout:    int(lb.RequestTimeout.Int32),
->>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 		Gigastake:         lb.Gigastake.Bool,
 		GigastakeRedirect: lb.GigastakeRedirect.Bool,
 		StickyOptions: repository.StickyOptions{
 			Duration:      lb.Duration.String,
 			StickyOrigins: lb.Origins,
-<<<<<<< HEAD
-<<<<<<< HEAD
 			RelaysLimit:   int(lb.RelaysLimit.Int32),
-=======
-			RelaysLimit:   int(lb.RelaysLimit.Int64),
->>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
-=======
-			RelaysLimit:   int(lb.RelaysLimit.Int32),
->>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 			Stickiness:    lb.Stickiness.Bool,
 			UseRPCID:      lb.UseRPCID.Bool,
 		},

@@ -55,15 +55,7 @@ type dbApplication struct {
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
-<<<<<<< HEAD
-<<<<<<< HEAD
 	MaxRelays            sql.NullInt32  `db:"max_relays"`
-=======
-	MaxRelays            sql.NullInt64  `db:"max_relays"`
->>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
-=======
-	MaxRelays            sql.NullInt32  `db:"max_relays"`
->>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 	Dummy                sql.NullBool   `db:"dummy"`
 	FreeTier             sql.NullBool   `db:"free_tier"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
@@ -122,27 +114,11 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Description:  a.Description.String,
 		Owner:        a.Owner.String,
 		URL:          a.URL.String,
-<<<<<<< HEAD
-<<<<<<< HEAD
 		MaxRelays:    int(a.MaxRelays.Int32),
 		Dummy:        a.Dummy.Bool,
 		FreeTier:     a.FreeTier.Bool,
 		CreatedAt:    a.CreatedAt.Time,
 		UpdatedAt:    a.UpdatedAt.Time,
-=======
-		MaxRelays:    a.MaxRelays.Int64,
-		Dummy:        a.Dummy.Bool,
-		FreeTier:     a.FreeTier.Bool,
-		CreatedAt:    &a.CreatedAt.Time,
-		UpdatedAt:    &a.UpdatedAt.Time,
->>>>>>> 77af657 (feat: added the fields in the PUB structs to the repository and postgresdriver packages.)
-=======
-		MaxRelays:    int(a.MaxRelays.Int32),
-		Dummy:        a.Dummy.Bool,
-		FreeTier:     a.FreeTier.Bool,
-		CreatedAt:    a.CreatedAt.Time,
-		UpdatedAt:    a.UpdatedAt.Time,
->>>>>>> 02498cb (feat: tweaks to chain fields and reconciling types.)
 		FreeTierAAT: repository.FreeTierAAT{
 			ApplicationPublicKey: a.FAPublicKey.String,
 			ApplicationSignature: a.FASignature.String,
