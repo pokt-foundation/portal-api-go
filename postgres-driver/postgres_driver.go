@@ -1,9 +1,19 @@
 package postgresdriver
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
+)
+
+var (
+	// ErrNoFieldsToUpdate error when there are no fields to update
+	ErrNoFieldsToUpdate = errors.New("no fields to update")
+
+	idLength = 24
 )
 
 // PostgresDriver struct handler for PostgresDB related functions
@@ -29,4 +39,35 @@ func NewPostgresDriverFromSQLDBInstance(db *sql.DB) *PostgresDriver {
 	return &PostgresDriver{
 		DB: sqlx.NewDb(db, "postgres"),
 	}
+}
+
+func newSQLNullString(value string) sql.NullString {
+	if value == "" {
+		return sql.NullString{}
+	}
+
+	return sql.NullString{
+		String: value,
+		Valid:  true,
+	}
+}
+
+func newSQLNullInt32(value int32) sql.NullInt32 {
+	if value == 0 {
+		return sql.NullInt32{}
+	}
+
+	return sql.NullInt32{
+		Int32: value,
+		Valid: true,
+	}
+}
+
+func generateRandomID() (string, error) {
+	bytes := make([]byte, idLength/2)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(bytes), nil
 }
