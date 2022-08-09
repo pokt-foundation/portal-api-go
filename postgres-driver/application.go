@@ -11,18 +11,20 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.name, a.owner, a.updated_at, a.url, a.user_id, 
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.max_relays, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
 	fa.public_key AS fa_public_key, fa.signature AS fa_signature, fa.client_public_key AS fa_client_public_key, fa.version AS fa_version, 
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
-	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents
+	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
 	FROM applications AS a
 	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
 	LEFT JOIN freetier_app_account AS fac ON a.application_id=fac.application_id
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
+	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
 	`
 )
 
@@ -38,7 +40,7 @@ type dbApplication struct {
 	FAClientPublicKey    sql.NullString `db:"fa_client_public_key"`
 	FAVersion            sql.NullString `db:"fa_version"`
 	FACPublicKey         sql.NullString `db:"fac_public_key"`
-	FACAdress            sql.NullString `db:"fac_address"`
+	FACAddress           sql.NullString `db:"fac_address"`
 	FACPrivateKey        sql.NullString `db:"fac_private_key"`
 	FACVersion           sql.NullString `db:"fac_version"`
 	GAPublicKey          sql.NullString `db:"ga_public_key"`
@@ -60,10 +62,10 @@ type dbApplication struct {
 	FreeTier             sql.NullBool   `db:"free_tier"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
 	SignedUp             sql.NullBool   `db:"signed_up"`
-	Quarter              sql.NullBool   `db:"quarter"`
-	Half                 sql.NullBool   `db:"half"`
-	ThreeQuarters        sql.NullBool   `db:"three_quarters"`
-	Full                 sql.NullBool   `db:"full"`
+	Quarter              sql.NullBool   `db:"on_quarter"`
+	Half                 sql.NullBool   `db:"on_half"`
+	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
+	Full                 sql.NullBool   `db:"on_full"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
@@ -126,7 +128,7 @@ func (a *dbApplication) toApplication() *repository.Application {
 			Version:              a.FAVersion.String,
 		},
 		FreeTierApplicationAccount: repository.FreeTierApplicationAccount{
-			Address:    a.FACAdress.String,
+			Address:    a.FACAddress.String,
 			PublicKey:  a.FACPublicKey.String,
 			PrivateKey: a.FACPrivateKey.String,
 			Version:    a.FACVersion.String,
