@@ -120,7 +120,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 		"60ddc61b6e29c3003378361D").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &UpdateLoadBalancerOptions{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
 		Name:   "rochy",
 		UserID: "60e85042bf95f5003559b791",
 	})
@@ -130,7 +130,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 		"60ddc61b6e29c3003378361D").
 		WillReturnError(errors.New("dummy error"))
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &UpdateLoadBalancerOptions{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
 		Name:   "rochy",
 		UserID: "60e85042bf95f5003559b791",
 	})

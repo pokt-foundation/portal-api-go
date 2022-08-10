@@ -476,14 +476,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	return app, tx.Commit()
 }
 
-// UpdateApplicationOptions struct holding possible fields to update
-type UpdateApplicationOptions struct {
-	Name            string                      `json:"name,omitempty"`
-	UserID          string                      `json:"userID,omitempty"`
-	Status          repository.AppStatus        `json:"status,omitempty"`
-	GatewaySettings *repository.GatewaySettings `json:"gatewaySettings,omitempty"`
-}
-
 func (d *PostgresDriver) readGatewaySettings(appID string) (*insertGatewaySettings, error) {
 	var settings insertGatewaySettings
 
@@ -523,16 +515,16 @@ func (d *PostgresDriver) doUpdateGatewaySettings(id string, settings *repository
 }
 
 // UpdateApplication updates fields available in options in db
-func (d *PostgresDriver) UpdateApplication(id string, options *UpdateApplicationOptions) error {
+func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository.UpdateApplication) error {
 	if id == "" {
 		return ErrMissingID
 	}
 
-	if options == nil {
+	if fieldsToUpdate == nil {
 		return ErrNoFieldsToUpdate
 	}
 
-	if !repository.ValidAppStatuses[options.Status] {
+	if !repository.ValidAppStatuses[fieldsToUpdate.Status] {
 		return ErrInvalidAppStatus
 	}
 
@@ -541,13 +533,13 @@ func (d *PostgresDriver) UpdateApplication(id string, options *UpdateApplication
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(options.Name),
-		newSQLNullString(options.UserID), newSQLNullString(string(options.Status)), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name),
+		newSQLNullString(fieldsToUpdate.UserID), newSQLNullString(string(fieldsToUpdate.Status)), time.Now(), id)
 	if err != nil {
 		return err
 	}
 
-	err = d.doUpdateGatewaySettings(id, options.GatewaySettings, tx)
+	err = d.doUpdateGatewaySettings(id, fieldsToUpdate.GatewaySettings, tx)
 	if err != nil {
 		return err
 	}

@@ -179,24 +179,18 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 	return loadBalancer, tx.Commit()
 }
 
-// UpdateLoadBalancerOptions struct holding possible field to update
-type UpdateLoadBalancerOptions struct {
-	Name   string `json:"name,omitempty"`
-	UserID string `json:"userID,omitempty"`
-}
-
 // UpdateLoadBalancer updates fields available in options in db
-func (d *PostgresDriver) UpdateLoadBalancer(id string, options *UpdateLoadBalancerOptions) error {
+func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate *repository.UpdateLoadBalancer) error {
 	if id == "" {
 		return ErrMissingID
 	}
 
-	if options == nil {
+	if fieldsToUpdate == nil {
 		return ErrNoFieldsToUpdate
 	}
 
-	_, err := d.Exec(updateLoadBalancer, newSQLNullString(options.Name),
-		newSQLNullString(options.UserID), time.Now(), id)
+	_, err := d.Exec(updateLoadBalancer, newSQLNullString(fieldsToUpdate.Name),
+		newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
 	if err != nil {
 		return err
 	}

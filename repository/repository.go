@@ -78,6 +78,14 @@ var (
 	}
 )
 
+// UpdateApplication struct holding possible fields to update
+type UpdateApplication struct {
+	Name            string           `json:"name,omitempty"`
+	UserID          string           `json:"userID,omitempty"`
+	Status          AppStatus        `json:"status,omitempty"`
+	GatewaySettings *GatewaySettings `json:"gatewaySettings,omitempty"`
+}
+
 type FreeTierAAT struct {
 	Version              string `json:"version"`
 	ClientPublicKey      string `json:"clientPublicKey"`
@@ -198,6 +206,12 @@ type LoadBalancer struct {
 	// User []*User
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// UpdateLoadBalancer struct holding possible field to update
+type UpdateLoadBalancer struct {
+	Name   string `json:"name,omitempty"`
+	UserID string `json:"userID,omitempty"`
 }
 
 type StickyOptions struct {

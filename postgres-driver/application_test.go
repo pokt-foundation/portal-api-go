@@ -230,7 +230,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		WhitelistUserAgents: []string{"gecko.com"},
 	}
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -252,7 +252,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -267,7 +267,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:   "pablo",
 		UserID: "6025be31e1261e00308bfa3a",
 		Status: repository.Orphaned,
@@ -279,7 +279,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in applications"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -294,7 +294,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnError(errors.New("error reading gateway_settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -317,7 +317,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -337,7 +337,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"})).
 		WillReturnError(errors.New("error in inserting settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		UserID:          "6025be31e1261e00308bfa3a",
 		Status:          repository.Orphaned,
@@ -351,7 +351,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("", nil)
 	c.Equal(ErrMissingID, err)
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Status: "wrong",
 	})
 	c.Equal(ErrInvalidAppStatus, err)
