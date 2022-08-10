@@ -62,6 +62,7 @@ type GatewayAAT struct {
 	Version              string `json:"version"`
 }
 
+type GatewaySettingsInput = GatewaySettings
 type GatewaySettings struct {
 	SecretKey            string              `json:"secretKey"`
 	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
@@ -82,6 +83,7 @@ type WhitelistMethod struct {
 	Methods      []string `json:"methods"`
 }
 
+type NotificationSettingsInput = NotificationSettings
 type NotificationSettings struct {
 	SignedUp      bool `json:"signedUp"`
 	Quarter       bool `json:"quarter"`
