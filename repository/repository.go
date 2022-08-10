@@ -22,13 +22,12 @@ type Application struct {
 	ID                         string                     `json:"id"`
 	UserID                     string                     `json:"userID"`
 	Name                       string                     `json:"name"`
-	Status                     string                     `json:"status"`
+	Status                     AppStatus                  `json:"status"`
 	ContactEmail               string                     `json:"contactEmail"`
 	Description                string                     `json:"description"`
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
 	Dummy                      bool                       `json:"dummy"`
-	MaxRelays                  int                        `json:"maxRelays"`
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
@@ -38,6 +37,53 @@ type Application struct {
 	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
 	CreatedAt                  time.Time                  `json:"createdAt"`
 	UpdatedAt                  time.Time                  `json:"updatedAt"`
+}
+
+type AppStatus string
+
+const (
+	AwaitingFreetierFunds   AppStatus = "AWAITING_FREETIER_FUNDS"
+	AwaitingFreetierStaking AppStatus = "AWAITING_FREETIER_STAKING"
+	AwaitingFunds           AppStatus = "AWAITING_FUNDS"
+	AwaitingFundsRemoval    AppStatus = "AWAITING_FUNDS_REMOVAL"
+	AwaitingGracePeriod     AppStatus = "AWAITING_GRACE_PERIOD"
+	AwaitingSlotFunds       AppStatus = "AWAITING_SLOT_FUNDS"
+	AwaitingSlotStaking     AppStatus = "AWAITING_SLOT_STAKING"
+	AwaitingStaking         AppStatus = "AWAITING_STAKING"
+	AwaitingUnstaking       AppStatus = "AWAITING_UNSTAKING"
+	Decomissioned           AppStatus = "DECOMISSIONED"
+	InService               AppStatus = "IN_SERVICE"
+	Orphaned                AppStatus = "ORPHANED"
+	Ready                   AppStatus = "READY"
+	Swappable               AppStatus = "SWAPPABLE"
+)
+
+var (
+	ValidAppStatuses = map[AppStatus]bool{
+		"":                      true, // needed since it can be empty too
+		AwaitingFreetierFunds:   true,
+		AwaitingFreetierStaking: true,
+		AwaitingFunds:           true,
+		AwaitingFundsRemoval:    true,
+		AwaitingGracePeriod:     true,
+		AwaitingSlotFunds:       true,
+		AwaitingSlotStaking:     true,
+		AwaitingStaking:         true,
+		AwaitingUnstaking:       true,
+		Decomissioned:           true,
+		InService:               true,
+		Orphaned:                true,
+		Ready:                   true,
+		Swappable:               true,
+	}
+)
+
+// UpdateApplication struct holding possible fields to update
+type UpdateApplication struct {
+	Name            string           `json:"name,omitempty"`
+	UserID          string           `json:"userID,omitempty"`
+	Status          AppStatus        `json:"status,omitempty"`
+	GatewaySettings *GatewaySettings `json:"gatewaySettings,omitempty"`
 }
 
 type FreeTierAAT struct {
@@ -160,6 +206,12 @@ type LoadBalancer struct {
 	// User []*User
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// UpdateLoadBalancer struct holding possible field to update
+type UpdateLoadBalancer struct {
+	Name   string `json:"name,omitempty"`
+	UserID string `json:"userID,omitempty"`
 }
 
 type StickyOptions struct {

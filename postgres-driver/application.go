@@ -3,21 +3,24 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
+	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pokt-foundation/portal-api-go/repository"
 )
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.max_relays, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
 	fa.public_key AS fa_public_key, fa.signature AS fa_signature, fa.client_public_key AS fa_client_public_key, fa.version AS fa_version, 
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
 	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
@@ -26,6 +29,42 @@ const (
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
 	`
+	selectGatewaySettings = `
+	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
+	FROM gateway_settings WHERE application_id = $1`
+	insertApplicationScript = `
+	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, created_at, updated_at)
+	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :created_at, :updated_at)`
+	insertFreeTierAATScript = `
+	INSERT into freetier_aat (application_id, public_key, signature, client_public_key, version)
+	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
+	insertGatewayAATScript = `
+	INSERT into gateway_aat (application_id, public_key, signature, client_public_key, version)
+	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
+	insertFreeTierAppAccountScript = `
+	INSERT into freetier_app_account (application_id, public_key, address, private_key, version)
+	VALUES (:application_id, :public_key, :address, :private_key, :version)`
+	insertPublicPocketAccountScript = `
+	INSERT into public_pocket_account (application_id, public_key, address)
+	VALUES (:application_id, :public_key, :address)`
+	insertGatewaySettingsScript = `
+	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents)
+	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents)`
+	insertNotificationSettingsScript = `
+	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
+	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
+	updateApplication = `
+	UPDATE applications
+	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), status = COALESCE($3, status), updated_at = $4
+	WHERE application_id = $5`
+	updateGatewaySettings = `
+	UPDATE gateway_settings
+	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents
+	WHERE application_id = :application_id`
+)
+
+var (
+	ErrInvalidAppStatus = errors.New("invalid app status")
 )
 
 type dbApplication struct {
@@ -57,7 +96,6 @@ type dbApplication struct {
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
-	MaxRelays            sql.NullInt32  `db:"max_relays"`
 	Dummy                sql.NullBool   `db:"dummy"`
 	FreeTier             sql.NullBool   `db:"free_tier"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
@@ -70,53 +108,16 @@ type dbApplication struct {
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
 
-func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
-	contracts := []repository.WhitelistContract{}
-
-	if !rawContracts.Valid {
-		return contracts
-	}
-
-	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
-
-	for i, contract := range contracts {
-		for j, inContract := range contract.Contracts {
-			contracts[i].Contracts[j] = strings.TrimSpace(inContract)
-		}
-	}
-
-	return contracts
-}
-
-func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
-	methods := []repository.WhitelistMethod{}
-
-	if !rawMethods.Valid {
-		return methods
-	}
-
-	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
-
-	for i, method := range methods {
-		for j, inMethod := range method.Methods {
-			methods[i].Methods[j] = strings.TrimSpace(inMethod)
-		}
-	}
-
-	return methods
-}
-
 func (a *dbApplication) toApplication() *repository.Application {
 	return &repository.Application{
 		ID:           a.ApplicationID,
 		UserID:       a.UserID.String,
 		Name:         a.Name.String,
-		Status:       a.Status.String,
+		Status:       repository.AppStatus(a.Status.String),
 		ContactEmail: a.ContactEmail.String,
 		Description:  a.Description.String,
 		Owner:        a.Owner.String,
 		URL:          a.URL.String,
-		MaxRelays:    int(a.MaxRelays.Int32),
 		Dummy:        a.Dummy.Bool,
 		FreeTier:     a.FreeTier.Bool,
 		CreatedAt:    a.CreatedAt.Time,
@@ -162,6 +163,237 @@ func (a *dbApplication) toApplication() *repository.Application {
 	}
 }
 
+type insertDBApp struct {
+	ApplicationID string         `db:"application_id"`
+	UserID        sql.NullString `db:"user_id"`
+	Name          sql.NullString `db:"name"`
+	ContactEmail  sql.NullString `db:"contact_email"`
+	Description   sql.NullString `db:"description"`
+	Owner         sql.NullString `db:"owner"`
+	URL           sql.NullString `db:"url"`
+	CreatedAt     time.Time      `db:"created_at"`
+	UpdatedAt     time.Time      `db:"updated_at"`
+}
+
+func extractInsertDBApp(app *repository.Application) *insertDBApp {
+	return &insertDBApp{
+		ApplicationID: app.ID,
+		UserID:        newSQLNullString(app.UserID),
+		Name:          newSQLNullString(app.Name),
+		ContactEmail:  newSQLNullString(app.ContactEmail),
+		Description:   newSQLNullString(app.Description),
+		Owner:         newSQLNullString(app.Owner),
+		URL:           newSQLNullString(app.URL),
+		CreatedAt:     app.CreatedAt,
+		UpdatedAt:     app.UpdatedAt,
+	}
+}
+
+type insertFreeTierAAT struct {
+	ApplicationID   string         `db:"application_id"`
+	PublicKey       sql.NullString `db:"public_key"`
+	Signature       sql.NullString `db:"signature"`
+	ClientPublicKey sql.NullString `db:"client_public_key"`
+	Version         sql.NullString `db:"version"`
+}
+
+func (i *insertFreeTierAAT) isNotNull() bool {
+	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
+}
+
+func extractInsertFreeTierAAT(app *repository.Application) *insertFreeTierAAT {
+	return &insertFreeTierAAT{
+		ApplicationID:   app.ID,
+		PublicKey:       newSQLNullString(app.FreeTierAAT.ApplicationPublicKey),
+		Signature:       newSQLNullString(app.FreeTierAAT.ApplicationSignature),
+		ClientPublicKey: newSQLNullString(app.FreeTierAAT.ClientPublicKey),
+		Version:         newSQLNullString(app.FreeTierAAT.Version),
+	}
+}
+
+type insertGatewayAAT struct {
+	ApplicationID   string         `db:"application_id"`
+	PublicKey       sql.NullString `db:"public_key"`
+	Signature       sql.NullString `db:"signature"`
+	ClientPublicKey sql.NullString `db:"client_public_key"`
+	Version         sql.NullString `db:"version"`
+}
+
+func (i *insertGatewayAAT) isNotNull() bool {
+	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
+}
+
+func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
+	return &insertGatewayAAT{
+		ApplicationID:   app.ID,
+		PublicKey:       newSQLNullString(app.GatewayAAT.ApplicationPublicKey),
+		Signature:       newSQLNullString(app.GatewayAAT.ApplicationSignature),
+		ClientPublicKey: newSQLNullString(app.GatewayAAT.ClientPublicKey),
+		Version:         newSQLNullString(app.GatewayAAT.Version),
+	}
+}
+
+type insertFreeTierAppAccount struct {
+	ApplicationID string         `db:"application_id"`
+	PublicKey     sql.NullString `db:"public_key"`
+	Address       sql.NullString `db:"address"`
+	PrivateKey    sql.NullString `db:"private_key"`
+	Version       sql.NullString `db:"version"`
+}
+
+func (i *insertFreeTierAppAccount) isNotNull() bool {
+	return i.PublicKey.Valid || i.Address.Valid || i.PrivateKey.Valid || i.Version.Valid
+}
+
+func extractInsertFreeTierAppAccount(app *repository.Application) *insertFreeTierAppAccount {
+	return &insertFreeTierAppAccount{
+		ApplicationID: app.ID,
+		PublicKey:     newSQLNullString(app.FreeTierApplicationAccount.PublicKey),
+		Address:       newSQLNullString(app.FreeTierApplicationAccount.Address),
+		PrivateKey:    newSQLNullString(app.FreeTierApplicationAccount.PrivateKey),
+		Version:       newSQLNullString(app.FreeTierApplicationAccount.Version),
+	}
+}
+
+type insertPublicPocketAccount struct {
+	ApplicationID string         `db:"application_id"`
+	PublicKey     sql.NullString `db:"public_key"`
+	Address       sql.NullString `db:"address"`
+}
+
+func (i *insertPublicPocketAccount) isNotNull() bool {
+	return i.PublicKey.Valid || i.Address.Valid
+}
+
+func extractInsertPublicPocketAccount(app *repository.Application) *insertPublicPocketAccount {
+	return &insertPublicPocketAccount{
+		ApplicationID: app.ID,
+		PublicKey:     newSQLNullString(app.PublicPocketAccount.PublicKey),
+		Address:       newSQLNullString(app.PublicPocketAccount.Address),
+	}
+}
+
+type insertGatewaySettings struct {
+	ApplicationID        string         `db:"application_id"`
+	SecretKey            sql.NullString `db:"secret_key"`
+	SecretKeyRequired    bool           `db:"secret_key_required"`
+	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
+	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
+	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
+	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
+	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
+}
+
+func (i *insertGatewaySettings) isNotNull() bool {
+	return i.SecretKey.Valid || i.WhitelistContracts.Valid || i.WhitelistMethods.Valid ||
+		len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0 || len(i.WhitelistBlockchains) != 0
+}
+
+func marshalWhitelistContractsAndMethods(contracts []repository.WhitelistContract, methods []repository.WhitelistMethod) (string, string) {
+	var marshaledWhitelistContracts []byte
+	if len(contracts) > 0 {
+		marshaledWhitelistContracts, _ = json.Marshal(contracts)
+	}
+
+	var marshaledWhitelistMethods []byte
+	if len(methods) > 0 {
+		marshaledWhitelistMethods, _ = json.Marshal(methods)
+	}
+
+	return string(marshaledWhitelistContracts), string(marshaledWhitelistMethods)
+}
+
+func convertRepositoryToDBGatewaySettings(id string, settings *repository.GatewaySettings) *insertGatewaySettings {
+	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(settings.WhitelistContracts,
+		settings.WhitelistMethods)
+
+	return &insertGatewaySettings{
+		ApplicationID:        id,
+		SecretKey:            newSQLNullString(settings.SecretKey),
+		SecretKeyRequired:    settings.SecretKeyRequired,
+		WhitelistContracts:   newSQLNullString(marshaledWhitelistContracts),
+		WhitelistMethods:     newSQLNullString(marshaledWhitelistMethods),
+		WhitelistOrigins:     settings.WhitelistOrigins,
+		WhitelistUserAgents:  settings.WhitelistUserAgents,
+		WhitelistBlockchains: settings.WhitelistBlockchains,
+	}
+}
+
+func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySettings {
+	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(app.GatewaySettings.WhitelistContracts,
+		app.GatewaySettings.WhitelistMethods)
+
+	return &insertGatewaySettings{
+		ApplicationID:       app.ID,
+		SecretKey:           newSQLNullString(app.GatewaySettings.SecretKey),
+		SecretKeyRequired:   app.GatewaySettings.SecretKeyRequired,
+		WhitelistContracts:  newSQLNullString(marshaledWhitelistContracts),
+		WhitelistMethods:    newSQLNullString(marshaledWhitelistMethods),
+		WhitelistOrigins:    app.GatewaySettings.WhitelistOrigins,
+		WhitelistUserAgents: app.GatewaySettings.WhitelistUserAgents,
+	}
+}
+
+func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
+	contracts := []repository.WhitelistContract{}
+
+	if !rawContracts.Valid {
+		return contracts
+	}
+
+	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
+
+	for i, contract := range contracts {
+		for j, inContract := range contract.Contracts {
+			contracts[i].Contracts[j] = strings.TrimSpace(inContract)
+		}
+	}
+
+	return contracts
+}
+
+func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
+	methods := []repository.WhitelistMethod{}
+
+	if !rawMethods.Valid {
+		return methods
+	}
+
+	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
+
+	for i, method := range methods {
+		for j, inMethod := range method.Methods {
+			methods[i].Methods[j] = strings.TrimSpace(inMethod)
+		}
+	}
+
+	return methods
+}
+
+type insertNotificationSettings struct {
+	ApplicationID string `db:"application_id"`
+	SignedUp      bool   `db:"signed_up"`
+	Quarter       bool   `db:"on_quarter"`
+	Half          bool   `db:"on_half"`
+	ThreeQuarters bool   `db:"on_three_quarters"`
+	Full          bool   `db:"on_full"`
+}
+
+func (i *insertNotificationSettings) isNotNull() bool {
+	return true
+}
+
+func extractInsertNotificationSettings(app *repository.Application) *insertNotificationSettings {
+	return &insertNotificationSettings{
+		ApplicationID: app.ID,
+		SignedUp:      app.NotificationSettings.SignedUp,
+		Quarter:       app.NotificationSettings.Quarter,
+		Half:          app.NotificationSettings.Half,
+		ThreeQuarters: app.NotificationSettings.ThreeQuarters,
+		Full:          app.NotificationSettings.Full,
+	}
+}
+
 // ReadApplications returns all applications on the database
 func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	var dbApplications []*dbApplication
@@ -178,4 +410,139 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	}
 
 	return applications, nil
+}
+
+type nullable interface {
+	isNotNull() bool
+}
+
+// WriteApplication saves input application in the database
+func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
+	if !repository.ValidAppStatuses[app.Status] {
+		return nil, ErrInvalidAppStatus
+	}
+
+	id, err := generateRandomID()
+	if err != nil {
+		return nil, err
+	}
+
+	app.ID = id
+	app.CreatedAt = time.Now()
+	app.UpdatedAt = time.Now()
+
+	insertApp := extractInsertDBApp(app)
+
+	nullables := []nullable{}
+	nullablesScripts := []string{}
+
+	nullables = append(nullables, extractInsertFreeTierAAT(app))
+	nullablesScripts = append(nullablesScripts, insertFreeTierAATScript)
+
+	nullables = append(nullables, extractInsertGatewayAAT(app))
+	nullablesScripts = append(nullablesScripts, insertGatewayAATScript)
+
+	nullables = append(nullables, extractInsertFreeTierAppAccount(app))
+	nullablesScripts = append(nullablesScripts, insertFreeTierAppAccountScript)
+
+	nullables = append(nullables, extractInsertPublicPocketAccount(app))
+	nullablesScripts = append(nullablesScripts, insertPublicPocketAccountScript)
+
+	nullables = append(nullables, extractInsertGatewaySettings(app))
+	nullablesScripts = append(nullablesScripts, insertGatewaySettingsScript)
+
+	nullables = append(nullables, extractInsertNotificationSettings(app))
+	nullablesScripts = append(nullablesScripts, insertNotificationSettingsScript)
+
+	tx, err := d.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.NamedExec(insertApplicationScript, insertApp)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(nullables); i++ {
+		if nullables[i].isNotNull() {
+			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return app, tx.Commit()
+}
+
+func (d *PostgresDriver) readGatewaySettings(appID string) (*insertGatewaySettings, error) {
+	var settings insertGatewaySettings
+
+	err := d.Get(&settings, selectGatewaySettings, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func (d *PostgresDriver) doUpdateGatewaySettings(id string, settings *repository.GatewaySettings, tx *sqlx.Tx) error {
+	if settings == nil {
+		return nil
+	}
+
+	_, err := d.readGatewaySettings(id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err = tx.NamedExec(insertGatewaySettingsScript, convertRepositoryToDBGatewaySettings(id, settings))
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return err
+	}
+
+	_, err = tx.NamedExec(updateGatewaySettings, convertRepositoryToDBGatewaySettings(id, settings))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateApplication updates fields available in options in db
+func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository.UpdateApplication) error {
+	if id == "" {
+		return ErrMissingID
+	}
+
+	if fieldsToUpdate == nil {
+		return ErrNoFieldsToUpdate
+	}
+
+	if !repository.ValidAppStatuses[fieldsToUpdate.Status] {
+		return ErrInvalidAppStatus
+	}
+
+	tx, err := d.Beginx()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name),
+		newSQLNullString(fieldsToUpdate.UserID), newSQLNullString(string(fieldsToUpdate.Status)), time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	err = d.doUpdateGatewaySettings(id, fieldsToUpdate.GatewaySettings, tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
