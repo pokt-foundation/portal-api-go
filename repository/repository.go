@@ -22,13 +22,12 @@ type Application struct {
 	ID                         string                     `json:"id"`
 	UserID                     string                     `json:"userID"`
 	Name                       string                     `json:"name"`
-	Status                     string                     `json:"status"`
+	Status                     AppStatus                  `json:"status"`
 	ContactEmail               string                     `json:"contactEmail"`
 	Description                string                     `json:"description"`
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
 	Dummy                      bool                       `json:"dummy"`
-	MaxRelays                  int                        `json:"maxRelays"`
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
@@ -39,6 +38,45 @@ type Application struct {
 	CreatedAt                  time.Time                  `json:"createdAt"`
 	UpdatedAt                  time.Time                  `json:"updatedAt"`
 }
+
+type AppStatus string
+
+const (
+	AwaitingFreetierFunds   AppStatus = "AWAITING_FREETIER_FUNDS"
+	AwaitingFreetierStaking AppStatus = "AWAITING_FREETIER_STAKING"
+	AwaitingFunds           AppStatus = "AWAITING_FUNDS"
+	AwaitingFundsRemoval    AppStatus = "AWAITING_FUNDS_REMOVAL"
+	AwaitingGracePeriod     AppStatus = "AWAITING_GRACE_PERIOD"
+	AwaitingSlotFunds       AppStatus = "AWAITING_SLOT_FUNDS"
+	AwaitingSlotStaking     AppStatus = "AWAITING_SLOT_STAKING"
+	AwaitingStaking         AppStatus = "AWAITING_STAKING"
+	AwaitingUnstaking       AppStatus = "AWAITING_UNSTAKING"
+	Decomissioned           AppStatus = "DECOMISSIONED"
+	InService               AppStatus = "IN_SERVICE"
+	Orphaned                AppStatus = "ORPHANED"
+	Ready                   AppStatus = "READY"
+	Swappable               AppStatus = "SWAPPABLE"
+)
+
+var (
+	ValidAppStatuses = map[AppStatus]bool{
+		"":                      true, // needed since it can be empty too
+		AwaitingFreetierFunds:   true,
+		AwaitingFreetierStaking: true,
+		AwaitingFunds:           true,
+		AwaitingFundsRemoval:    true,
+		AwaitingGracePeriod:     true,
+		AwaitingSlotFunds:       true,
+		AwaitingSlotStaking:     true,
+		AwaitingStaking:         true,
+		AwaitingUnstaking:       true,
+		Decomissioned:           true,
+		InService:               true,
+		Orphaned:                true,
+		Ready:                   true,
+		Swappable:               true,
+	}
+)
 
 type FreeTierAAT struct {
 	Version              string `json:"version"`

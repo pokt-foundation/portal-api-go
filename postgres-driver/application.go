@@ -14,13 +14,13 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.max_relays, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
 	fa.public_key AS fa_public_key, fa.signature AS fa_signature, fa.client_public_key AS fa_client_public_key, fa.version AS fa_version, 
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
 	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
@@ -50,14 +50,21 @@ const (
 	insertGatewaySettingsScript = `
 	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents)
 	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents)`
+	insertNotificationSettingsScript = `
+	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
+	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), updated_at = $3
-	WHERE application_id = $4`
+	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), status = COALESCE($3, status), updated_at = $4
+	WHERE application_id = $5`
 	updateGatewaySettings = `
 	UPDATE gateway_settings
 	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents
 	WHERE application_id = :application_id`
+)
+
+var (
+	ErrInvalidAppStatus = errors.New("invalid app status")
 )
 
 type dbApplication struct {
@@ -89,7 +96,6 @@ type dbApplication struct {
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
-	MaxRelays            sql.NullInt32  `db:"max_relays"`
 	Dummy                sql.NullBool   `db:"dummy"`
 	FreeTier             sql.NullBool   `db:"free_tier"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
@@ -107,12 +113,11 @@ func (a *dbApplication) toApplication() *repository.Application {
 		ID:           a.ApplicationID,
 		UserID:       a.UserID.String,
 		Name:         a.Name.String,
-		Status:       a.Status.String,
+		Status:       repository.AppStatus(a.Status.String),
 		ContactEmail: a.ContactEmail.String,
 		Description:  a.Description.String,
 		Owner:        a.Owner.String,
 		URL:          a.URL.String,
-		MaxRelays:    int(a.MaxRelays.Int32),
 		Dummy:        a.Dummy.Bool,
 		FreeTier:     a.FreeTier.Bool,
 		CreatedAt:    a.CreatedAt.Time,
@@ -314,7 +319,7 @@ func convertRepositoryToDBGatewaySettings(id string, settings *repository.Gatewa
 	}
 }
 
-func extractInsertGatewatSettings(app *repository.Application) *insertGatewaySettings {
+func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySettings {
 	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(app.GatewaySettings.WhitelistContracts,
 		app.GatewaySettings.WhitelistMethods)
 
@@ -365,6 +370,30 @@ func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistM
 	return methods
 }
 
+type insertNotificationSettings struct {
+	ApplicationID string `db:"application_id"`
+	SignedUp      bool   `db:"signed_up"`
+	Quarter       bool   `db:"on_quarter"`
+	Half          bool   `db:"on_half"`
+	ThreeQuarters bool   `db:"on_three_quarters"`
+	Full          bool   `db:"on_full"`
+}
+
+func (i *insertNotificationSettings) isNotNull() bool {
+	return true
+}
+
+func extractInsertNotificationSettings(app *repository.Application) *insertNotificationSettings {
+	return &insertNotificationSettings{
+		ApplicationID: app.ID,
+		SignedUp:      app.NotificationSettings.SignedUp,
+		Quarter:       app.NotificationSettings.Quarter,
+		Half:          app.NotificationSettings.Half,
+		ThreeQuarters: app.NotificationSettings.ThreeQuarters,
+		Full:          app.NotificationSettings.Full,
+	}
+}
+
 // ReadApplications returns all applications on the database
 func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	var dbApplications []*dbApplication
@@ -389,6 +418,10 @@ type nullable interface {
 
 // WriteApplication saves input application in the database
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
+	if !repository.ValidAppStatuses[app.Status] {
+		return nil, ErrInvalidAppStatus
+	}
+
 	id, err := generateRandomID()
 	if err != nil {
 		return nil, err
@@ -415,8 +448,11 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	nullables = append(nullables, extractInsertPublicPocketAccount(app))
 	nullablesScripts = append(nullablesScripts, insertPublicPocketAccountScript)
 
-	nullables = append(nullables, extractInsertGatewatSettings(app))
+	nullables = append(nullables, extractInsertGatewaySettings(app))
 	nullablesScripts = append(nullablesScripts, insertGatewaySettingsScript)
+
+	nullables = append(nullables, extractInsertNotificationSettings(app))
+	nullablesScripts = append(nullablesScripts, insertNotificationSettingsScript)
 
 	tx, err := d.Beginx()
 	if err != nil {
@@ -444,6 +480,7 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 type UpdateApplicationOptions struct {
 	Name            string                      `json:"name,omitempty"`
 	UserID          string                      `json:"userID,omitempty"`
+	Status          repository.AppStatus        `json:"status,omitempty"`
 	GatewaySettings *repository.GatewaySettings `json:"gatewaySettings,omitempty"`
 }
 
@@ -495,13 +532,17 @@ func (d *PostgresDriver) UpdateApplication(id string, options *UpdateApplication
 		return ErrNoFieldsToUpdate
 	}
 
+	if !repository.ValidAppStatuses[options.Status] {
+		return ErrInvalidAppStatus
+	}
+
 	tx, err := d.Beginx()
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec(updateApplication, newSQLNullString(options.Name),
-		newSQLNullString(options.UserID), time.Now(), id)
+		newSQLNullString(options.UserID), newSQLNullString(string(options.Status)), time.Now(), id)
 	if err != nil {
 		return err
 	}
