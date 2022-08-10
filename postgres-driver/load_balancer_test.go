@@ -20,9 +20,9 @@ func TestPostgresDriver_ReadLoadbalancers(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.NewRows([]string{"lb_id", "name", "created_at", "updated_at",
-		"request_timeout", "gigastake", "gigastake_redirect", "user_id"}).
+		"request_timeout", "gigastake", "gigastake_redirect", "user_id", "app_ids"}).
 		AddRow("60e517ea76cfec00352bcdad", "wawawa", time.Now(), time.Now(),
-			2100, true, true, "6107ef92825e090034dce25e")
+			2100, true, true, "6107ef92825e090034dce25e", "{$oid:6107ef92825e090034dce25f}")
 
 	mock.ExpectQuery("^SELECT (.+) FROM loadbalancers (.+)").WillReturnRows(rows)
 
@@ -63,13 +63,14 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err := driver.WriteLoadBalancer(&repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
 		ApplicationIDs: []string{"61eae7640ae317bbc6c36dbb", "61eae7640ae317bbc6c36dba"},
 	})
 	c.NoError(err)
+	c.NotEmpty(loadBalancer)
 
 	mock.ExpectBegin()
 
@@ -77,13 +78,14 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 		"yes", "60e85042bf95f5003559b791", sql.NullInt32{}, false, false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in loadbalancers"))
 
-	err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err = driver.WriteLoadBalancer(&repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
 		ApplicationIDs: []string{"61eae7640ae317bbc6c36dbb", "61eae7640ae317bbc6c36dba"},
 	})
 	c.EqualError(err, "error in loadbalancers")
+	c.Empty(loadBalancer)
 
 	mock.ExpectBegin()
 
@@ -94,13 +96,14 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 	mock.ExpectExec("INSERT into lb_apps").WithArgs(sqlmock.AnyArg(), "61eae7640ae317bbc6c36dbb").
 		WillReturnError(errors.New("error in lb_apps"))
 
-	err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err = driver.WriteLoadBalancer(&repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
 		ApplicationIDs: []string{"61eae7640ae317bbc6c36dbb", "61eae7640ae317bbc6c36dba"},
 	})
 	c.EqualError(err, "error in lb_apps")
+	c.Empty(loadBalancer)
 }
 
 func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
@@ -135,4 +138,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", nil)
 	c.Equal(ErrNoFieldsToUpdate, err)
+
+	err = driver.UpdateLoadBalancer("", nil)
+	c.Equal(ErrMissingID, err)
 }

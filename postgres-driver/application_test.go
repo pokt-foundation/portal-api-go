@@ -136,8 +136,9 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		},
 	}
 
-	err = driver.WriteApplication(appToSend)
+	app, err := driver.WriteApplication(appToSend)
 	c.NoError(err)
+	c.NotEmpty(app.ID)
 
 	mock.ExpectBegin()
 
@@ -145,8 +146,9 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in applications"))
 
-	err = driver.WriteApplication(appToSend)
+	app, err = driver.WriteApplication(appToSend)
 	c.EqualError(err, "error in applications")
+	c.Empty(app)
 
 	mock.ExpectBegin()
 
@@ -160,8 +162,9 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77", "1").
 		WillReturnError(errors.New("error in freetier_aat"))
 
-	err = driver.WriteApplication(appToSend)
+	app, err = driver.WriteApplication(appToSend)
 	c.EqualError(err, "error in freetier_aat")
+	c.Empty(app)
 }
 
 func TestPostgresDriver_UpdateApplication(t *testing.T) {
@@ -176,8 +179,13 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
+		AddRow("5f62b7d8be3591c4dea85661",
+			`[{"blockchainID":"0021","contracts":["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}]`,
+			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
 
 	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
 		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
@@ -207,25 +215,80 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
 		Name:            "pablo",
-		GatewatSettings: settingsToSend,
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
 	})
 	c.NoError(err)
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
+
+	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"})).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectCommit()
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+		Name:            "pablo",
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
+	})
+	c.NoError(err)
+
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectCommit()
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+		Name:   "pablo",
+		UserID: "6025be31e1261e00308bfa3a",
+	})
+	c.NoError(err)
+
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in applications"))
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
 		Name:            "pablo",
-		GatewatSettings: settingsToSend,
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
 	})
 	c.EqualError(err, "error in applications")
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnError(errors.New("error reading gateway_settings"))
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+		Name:            "pablo",
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
+	})
+	c.EqualError(err, "error reading gateway_settings")
+
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
+		AddRow("5f62b7d8be3591c4dea85661",
+			`[{"blockchainID":"0021","contracts":["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}]`,
+			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
 
 	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
 		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
@@ -234,10 +297,33 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
 		Name:            "pablo",
-		GatewatSettings: settingsToSend,
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
 	})
 	c.EqualError(err, "error in settings")
 
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "6025be31e1261e00308bfa3a", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
+
+	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"})).
+		WillReturnError(errors.New("error in inserting settings"))
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &UpdateApplicationOptions{
+		Name:            "pablo",
+		UserID:          "6025be31e1261e00308bfa3a",
+		GatewaySettings: settingsToSend,
+	})
+	c.EqualError(err, "error in inserting settings")
+
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", nil)
 	c.Equal(ErrNoFieldsToUpdate, err)
+
+	err = driver.UpdateApplication("", nil)
+	c.Equal(ErrMissingID, err)
 }

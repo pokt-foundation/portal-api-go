@@ -3,9 +3,11 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pokt-foundation/portal-api-go/repository"
 )
@@ -25,6 +27,9 @@ const (
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	`
+	selectGatewaySettings = `
+	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
+	FROM gateway_settings WHERE application_id = $1`
 	insertApplicationScript = `
 	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, created_at, updated_at)
 	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :created_at, :updated_at)`
@@ -45,8 +50,8 @@ const (
 	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), updated_at = $2
-	WHERE application_id = $3`
+	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), updated_at = $3
+	WHERE application_id = $4`
 	updateGatewaySettings = `
 	UPDATE gateway_settings
 	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents
@@ -262,18 +267,19 @@ func extractInsertPublicPocketAccount(app *repository.Application) *insertPublic
 }
 
 type insertGatewaySettings struct {
-	ApplicationID       string         `db:"application_id"`
-	SecretKey           sql.NullString `db:"secret_key"`
-	SecretKeyRequired   bool           `db:"secret_key_required"`
-	WhitelistContracts  sql.NullString `db:"whitelist_contracts"`
-	WhitelistMethods    sql.NullString `db:"whitelist_methods"`
-	WhitelistOrigins    pq.StringArray `db:"whitelist_origins"`
-	WhitelistUserAgents pq.StringArray `db:"whitelist_user_agents"`
+	ApplicationID        string         `db:"application_id"`
+	SecretKey            sql.NullString `db:"secret_key"`
+	SecretKeyRequired    bool           `db:"secret_key_required"`
+	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
+	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
+	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
+	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
+	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
 }
 
 func (i *insertGatewaySettings) isNotNull() bool {
 	return i.SecretKey.Valid || i.WhitelistContracts.Valid || i.WhitelistMethods.Valid ||
-		len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0
+		len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0 || len(i.WhitelistBlockchains) != 0
 }
 
 func marshalWhitelistContractsAndMethods(contracts []repository.WhitelistContract, methods []repository.WhitelistMethod) (string, string) {
@@ -295,13 +301,14 @@ func convertRepositoryToDBGatewaySettings(id string, settings *repository.Gatewa
 		settings.WhitelistMethods)
 
 	return &insertGatewaySettings{
-		ApplicationID:       id,
-		SecretKey:           newSQLNullString(settings.SecretKey),
-		SecretKeyRequired:   settings.SecretKeyRequired,
-		WhitelistContracts:  newSQLNullString(marshaledWhitelistContracts),
-		WhitelistMethods:    newSQLNullString(marshaledWhitelistMethods),
-		WhitelistOrigins:    settings.WhitelistOrigins,
-		WhitelistUserAgents: settings.WhitelistUserAgents,
+		ApplicationID:        id,
+		SecretKey:            newSQLNullString(settings.SecretKey),
+		SecretKeyRequired:    settings.SecretKeyRequired,
+		WhitelistContracts:   newSQLNullString(marshaledWhitelistContracts),
+		WhitelistMethods:     newSQLNullString(marshaledWhitelistMethods),
+		WhitelistOrigins:     settings.WhitelistOrigins,
+		WhitelistUserAgents:  settings.WhitelistUserAgents,
+		WhitelistBlockchains: settings.WhitelistBlockchains,
 	}
 }
 
@@ -379,10 +386,10 @@ type nullable interface {
 }
 
 // WriteApplication saves input application in the database
-func (d *PostgresDriver) WriteApplication(app *repository.Application) error {
+func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
 	id, err := generateRandomID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	app.ID = id
@@ -411,34 +418,77 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) error {
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = tx.NamedExec(insertApplicationScript, insertApp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for i := 0; i < len(nullables); i++ {
 		if nullables[i].isNotNull() {
 			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return tx.Commit()
+	return app, tx.Commit()
 }
 
 // UpdateApplicationOptions struct holding possible fields to update
 type UpdateApplicationOptions struct {
-	Name            string
-	GatewatSettings *repository.GatewaySettings
+	Name            string                      `json:"name,omitempty"`
+	UserID          string                      `json:"userID,omitempty"`
+	GatewaySettings *repository.GatewaySettings `json:"gatewaySettings,omitempty"`
+}
+
+func (d *PostgresDriver) readGatewaySettings(appID string) (*insertGatewaySettings, error) {
+	var settings insertGatewaySettings
+
+	err := d.Get(&settings, selectGatewaySettings, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func (d *PostgresDriver) doUpdateGatewaySettings(id string, settings *repository.GatewaySettings, tx *sqlx.Tx) error {
+	if settings == nil {
+		return nil
+	}
+
+	_, err := d.readGatewaySettings(id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err = tx.NamedExec(insertGatewaySettingsScript, convertRepositoryToDBGatewaySettings(id, settings))
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return err
+	}
+
+	_, err = tx.NamedExec(updateGatewaySettings, convertRepositoryToDBGatewaySettings(id, settings))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UpdateApplication updates fields available in options in db
 func (d *PostgresDriver) UpdateApplication(id string, options *UpdateApplicationOptions) error {
+	if id == "" {
+		return ErrMissingID
+	}
+
 	if options == nil {
 		return ErrNoFieldsToUpdate
 	}
@@ -448,16 +498,15 @@ func (d *PostgresDriver) UpdateApplication(id string, options *UpdateApplication
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(options.Name), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(options.Name),
+		newSQLNullString(options.UserID), time.Now(), id)
 	if err != nil {
 		return err
 	}
 
-	if options.GatewatSettings != nil {
-		_, err = tx.NamedExec(updateGatewaySettings, convertRepositoryToDBGatewaySettings(id, options.GatewatSettings))
-		if err != nil {
-			return err
-		}
+	err = d.doUpdateGatewaySettings(id, options.GatewaySettings, tx)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()

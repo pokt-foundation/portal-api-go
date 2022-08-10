@@ -46,12 +46,29 @@ type dbLoadBalancer struct {
 	UpdatedAt         sql.NullTime   `db:"updated_at"`
 }
 
+func getAppIDs(rawAppIDs sql.NullString) []string {
+	if !rawAppIDs.Valid {
+		return nil
+	}
+
+	appIDs := strings.Split(rawAppIDs.String, ",")
+
+	// This is needed in some cases where appIDs were not stored correctly
+	if strings.Contains(appIDs[0], "{$oid:") {
+		for i := 0; i < len(appIDs); i++ {
+			appIDs[i] = appIDs[i][6 : len(appIDs[i])-1]
+		}
+	}
+
+	return appIDs
+}
+
 func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 	return &repository.LoadBalancer{
 		ID:                lb.LbID,
 		Name:              lb.Name.String,
 		UserID:            lb.UserID.String,
-		ApplicationIDs:    strings.Split(lb.AppIDS.String, ","),
+		ApplicationIDs:    getAppIDs(lb.AppIDS),
 		RequestTimeout:    int(lb.RequestTimeout.Int32),
 		Gigastake:         lb.Gigastake.Bool,
 		GigastakeRedirect: lb.GigastakeRedirect.Bool,
@@ -129,10 +146,10 @@ func (d *PostgresDriver) ReadLoadBalancers() ([]*repository.LoadBalancer, error)
 
 // WriteLoadBalancer saves input load balancer in the database
 // Does not save stickiness configuration
-func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer) error {
+func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer) (*repository.LoadBalancer, error) {
 	id, err := generateRandomID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	loadBalancer.ID = id
@@ -144,32 +161,36 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = tx.NamedExec(insertLoadBalancerScript, insertLoadBalancer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, insert := range insertsLbApps {
 		_, err = tx.NamedExec(insertLbAppsScript, insert)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return tx.Commit()
+	return loadBalancer, tx.Commit()
 }
 
 // UpdateLoadBalancerOptions struct holding possible field to update
 type UpdateLoadBalancerOptions struct {
-	Name   string
-	UserID string
+	Name   string `json:"name,omitempty"`
+	UserID string `json:"userID,omitempty"`
 }
 
 // UpdateLoadBalancer updates fields available in options in db
 func (d *PostgresDriver) UpdateLoadBalancer(id string, options *UpdateLoadBalancerOptions) error {
+	if id == "" {
+		return ErrMissingID
+	}
+
 	if options == nil {
 		return ErrNoFieldsToUpdate
 	}
