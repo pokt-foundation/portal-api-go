@@ -34,7 +34,7 @@ type dbLoadBalancer struct {
 	Duration          sql.NullString `db:"duration"`
 	Name              sql.NullString `db:"name"`
 	UserID            sql.NullString `db:"user_id"`
-	AppIDS            sql.NullString `db:"app_ids"`
+	AppIDs            sql.NullString `db:"app_ids"`
 	Origins           pq.StringArray `db:"origins"`
 	RelaysLimit       sql.NullInt32  `db:"relays_limit"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
@@ -68,7 +68,7 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 		ID:                lb.LbID,
 		Name:              lb.Name.String,
 		UserID:            lb.UserID.String,
-		ApplicationIDs:    getAppIDs(lb.AppIDS),
+		ApplicationIDs:    getAppIDs(lb.AppIDs),
 		RequestTimeout:    int(lb.RequestTimeout.Int32),
 		Gigastake:         lb.Gigastake.Bool,
 		GigastakeRedirect: lb.GigastakeRedirect.Bool,
