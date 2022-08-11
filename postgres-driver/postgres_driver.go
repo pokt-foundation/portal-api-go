@@ -65,6 +65,17 @@ func newSQLNullInt32(value int32) sql.NullInt32 {
 	}
 }
 
+func newSQLNullInt64(value int64) sql.NullInt64 {
+	if value == 0 {
+		return sql.NullInt64{}
+	}
+
+	return sql.NullInt64{
+		Int64: value,
+		Valid: true,
+	}
+}
+
 func generateRandomID() (string, error) {
 	bytes := make([]byte, idLength/2)
 	if _, err := rand.Read(bytes); err != nil {

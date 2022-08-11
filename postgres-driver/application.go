@@ -20,7 +20,8 @@ const (
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
+	al.daily_limit
 	FROM applications AS a
 	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
@@ -28,6 +29,7 @@ const (
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
+	LEFT JOIN app_limits AS al ON a.application_id=al.application_id
 	`
 	selectGatewaySettings = `
 	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
@@ -53,6 +55,9 @@ const (
 	insertNotificationSettingsScript = `
 	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
+	insertAppLimitsScript = `
+	INSERT into app_limits (application_id, daily_limit)
+	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
 	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), status = COALESCE($3, status), updated_at = $4
@@ -104,6 +109,7 @@ type dbApplication struct {
 	Half                 sql.NullBool   `db:"on_half"`
 	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
 	Full                 sql.NullBool   `db:"on_full"`
+	DailyLimit           sql.NullInt64  `db:"daily_limit"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
@@ -159,6 +165,9 @@ func (a *dbApplication) toApplication() *repository.Application {
 		PublicPocketAccount: repository.PublicPocketAccount{
 			PublicKey: a.PAPublicKey.String,
 			Address:   a.PAAdress.String,
+		},
+		Limits: repository.AppLimits{
+			DailyLimit: int(a.DailyLimit.Int64),
 		},
 	}
 }
@@ -394,6 +403,22 @@ func extractInsertNotificationSettings(app *repository.Application) *insertNotif
 	}
 }
 
+type insertAppLimits struct {
+	ApplicationID string        `db:"application_id"`
+	DailyLimit    sql.NullInt64 `db:"daily_limit"`
+}
+
+func (i *insertAppLimits) isNotNull() bool {
+	return i.DailyLimit.Valid
+}
+
+func extractInsertAppLimits(app *repository.Application) *insertAppLimits {
+	return &insertAppLimits{
+		ApplicationID: app.ID,
+		DailyLimit:    newSQLNullInt64(int64(app.Limits.DailyLimit)),
+	}
+}
+
 // ReadApplications returns all applications on the database
 func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	var dbApplications []*dbApplication
@@ -453,6 +478,9 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	nullables = append(nullables, extractInsertNotificationSettings(app))
 	nullablesScripts = append(nullablesScripts, insertNotificationSettingsScript)
+
+	nullables = append(nullables, extractInsertAppLimits(app))
+	nullablesScripts = append(nullablesScripts, insertAppLimitsScript)
 
 	tx, err := d.Beginx()
 	if err != nil {
