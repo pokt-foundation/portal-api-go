@@ -88,6 +88,9 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		true, true, true, true, true).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectExec("INSERT into app_limits").WithArgs(sqlmock.AnyArg(), 1000000).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
 	mock.ExpectCommit()
 
 	appToSend := &repository.Application{
@@ -144,6 +147,9 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 			Half:          true,
 			ThreeQuarters: true,
 			Full:          true,
+		},
+		Limits: repository.AppLimits{
+			DailyLimit: 1000000,
 		},
 	}
 

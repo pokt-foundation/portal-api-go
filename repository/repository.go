@@ -35,6 +35,7 @@ type Application struct {
 	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
 	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
 	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
+	Limits                     AppLimits                  `json:"limits"`
 	CreatedAt                  time.Time                  `json:"createdAt"`
 	UpdatedAt                  time.Time                  `json:"updatedAt"`
 }
@@ -77,6 +78,11 @@ var (
 		Swappable:               true,
 	}
 )
+
+type AppLimits struct {
+	AppID      string `json:"appID,omitempty"`
+	DailyLimit int    `json:"dailyLimit"`
+}
 
 // UpdateApplication struct holding possible fields to update
 type UpdateApplication struct {
