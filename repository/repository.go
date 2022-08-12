@@ -31,7 +31,7 @@ type Application struct {
 	FreeTier                   bool                       `json:"freeTier"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
-	GatewayAAT                 GatewayAAT                 `json:"gatewatAAT"`
+	GatewayAAT                 GatewayAAT                 `json:"gatewayAAT"`
 	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
 	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
 	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
