@@ -81,6 +81,7 @@ var (
 
 type AppLimits struct {
 	AppID      string `json:"appID,omitempty"`
+	PublicKey  string `json:"publicKey,omitempty"`
 	DailyLimit int    `json:"dailyLimit"`
 }
 
