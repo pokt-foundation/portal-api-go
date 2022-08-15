@@ -589,7 +589,7 @@ func (d *PostgresDriver) RemoveApplication(id string) error {
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString("AWAITING_GRACE_PERIOD"), time.Now(), id)
+	_, err = tx.Exec(removeApplication, newSQLNullString("AWAITING_GRACE_PERIOD"), time.Now(), id)
 	if err != nil {
 		return err
 	}

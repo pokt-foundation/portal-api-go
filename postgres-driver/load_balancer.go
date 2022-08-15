@@ -207,7 +207,7 @@ func (d *PostgresDriver) RemoveLoadBalancer(id string) error {
 		return ErrMissingID
 	}
 
-	_, err := d.Exec(updateLoadBalancer, newSQLNullString(""), time.Now(), id)
+	_, err := d.Exec(removeLoadBalancer, newSQLNullString(""), time.Now(), id)
 	if err != nil {
 		return err
 	}
