@@ -362,3 +362,29 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	})
 	c.Equal(ErrInvalidAppStatus, err)
 }
+
+func TestPostgresDriver_RemoveApplication(t *testing.T) {
+	c := require.New(t)
+
+	db, mock, err := sqlmock.New()
+	c.NoError(err)
+
+	defer db.Close()
+
+	driver := NewPostgresDriverFromSQLDBInstance(db)
+
+	mock.ExpectExec("UPDATE applications").WithArgs("AWAITING_GRACE_PERIOD", sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = driver.RemoveApplication("60ddc61b6e2936fhtrns63h2")
+	c.NoError(err)
+
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs("AWAITING_GRACE_PERIOD", sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2").
+		WillReturnError(errors.New("dummy error"))
+
+	err = driver.RemoveApplication("not-an-id")
+	c.EqualError(err, "dummy error")
+
+	err = driver.RemoveApplication("")
+	c.Equal(ErrMissingID, err)
+}

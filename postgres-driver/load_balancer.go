@@ -25,8 +25,12 @@ const (
 	VALUES (:lb_id, :app_id)`
 	updateLoadBalancer = `
 	UPDATE loadbalancers
-	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), updated_at = $3
-	WHERE lb_id = $4`
+	SET name = COALESCE($1, name), updated_at = $2
+	WHERE lb_id = $3`
+	removeLoadBalancer = `
+	UPDATE loadbalancers
+	SET user_id = COALESCE($1, user_id), updated_at = $2
+	WHERE lb_id = $3`
 )
 
 type dbLoadBalancer struct {
@@ -189,8 +193,21 @@ func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate *repositor
 		return ErrNoFieldsToUpdate
 	}
 
-	_, err := d.Exec(updateLoadBalancer, newSQLNullString(fieldsToUpdate.Name),
-		newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
+	_, err := d.Exec(updateLoadBalancer, newSQLNullString(fieldsToUpdate.Name), time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateLoadBalancer updates fields available in options in db
+func (d *PostgresDriver) RemoveLoadBalancer(id string) error {
+	if id == "" {
+		return ErrMissingID
+	}
+
+	_, err := d.Exec(updateLoadBalancer, newSQLNullString(""), time.Now(), id)
 	if err != nil {
 		return err
 	}

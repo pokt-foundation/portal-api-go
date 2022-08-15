@@ -142,3 +142,29 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 	err = driver.UpdateLoadBalancer("", nil)
 	c.Equal(ErrMissingID, err)
 }
+
+func TestPostgresDriver_RemoveLoadBalancer(t *testing.T) {
+	c := require.New(t)
+
+	db, mock, err := sqlmock.New()
+	c.NoError(err)
+
+	defer db.Close()
+
+	driver := NewPostgresDriverFromSQLDBInstance(db)
+
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs("", "60ddc61b6e29c3003378361D").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = driver.RemoveLoadBalancer("60ddc61b6e29c3003378361D")
+	c.NoError(err)
+
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs("", "60ddc61b6e29c3003378361D").
+		WillReturnError(errors.New("dummy error"))
+
+	err = driver.RemoveLoadBalancer("not-an-id")
+	c.EqualError(err, "dummy error")
+
+	err = driver.RemoveLoadBalancer("")
+	c.Equal(ErrMissingID, err)
+}
