@@ -23,7 +23,7 @@ func TestPostgresDriver_ReadRedirects(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM redirects$").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	blockchains, err := driver.ReadRedirects()
 	c.NoError(err)
@@ -44,7 +44,7 @@ func TestPostgresDriver_WriteRedirect(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 

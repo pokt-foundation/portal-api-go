@@ -22,7 +22,7 @@ type StickyClientService interface {
 }
 
 type Key struct {
-	RpcID          int
+	RPCID          int
 	LoadBalancerID string
 	ApplicationID  string
 	BlockchainID   string
@@ -36,8 +36,7 @@ type OptionsVerifier func(repository.StickyOptions) error
 type StickyClient struct {
 	PreferredApplicationID string
 	PreferredNodeAddress   string
-	RpcID int
-	ttl   time.Time
+	RPCID                  int
 
 	Relays *CountWithTTL
 	Errors *CountWithTTL
@@ -133,7 +132,7 @@ func (s *stickyNodes) GetStickyDetails(o repository.StickyOptions, keyBuilder Ke
 
 // TODO: move defaultLogLimitBlocks to settings of relayServer
 func (k Key) IsEmpty() bool {
-	return k.LoadBalancerID == "" && k.ApplicationID == "" && k.RpcID <= 0
+	return k.LoadBalancerID == "" && k.ApplicationID == "" && k.RPCID <= 0
 }
 
 func (k Key) String() string {
@@ -143,7 +142,7 @@ func (k Key) String() string {
 	}
 
 	if prefix == "" {
-		return fmt.Sprintf("%d-%s-%s", k.RpcID, k.IP, k.BlockchainID)
+		return fmt.Sprintf("%d-%s-%s", k.RPCID, k.IP, k.BlockchainID)
 	}
 	return fmt.Sprintf("%s-%s-%s", prefix, k.IP, k.BlockchainID)
 }
@@ -167,9 +166,9 @@ func (s *stickyNodes) Success(d *StickyDetails) error {
 	return s.enforceRelayLimit(d)
 }
 
-func (sc *StickyClient) SetupCounts() {
-	sc.Relays = &CountWithTTL{}
-	sc.Errors = &CountWithTTL{}
+func (c *StickyClient) SetupCounts() {
+	c.Relays = &CountWithTTL{}
+	c.Errors = &CountWithTTL{}
 }
 
 // TODO: pocket-go may need to return the node that was actually used: alternatively, we could always set the preferred node when using pocket-go to send relays.
@@ -225,9 +224,9 @@ func (s *stickyNodes) increaseErrorCount(d *StickyDetails) error {
 	return nil
 }
 
-func (sc StickyClient) NodeMatches(nodeAddress string) bool {
+func (c StickyClient) NodeMatches(nodeAddress string) bool {
 	// TODO: getAddressFromPublicKey(node)
-	return sc.PreferredNodeAddress != "" && sc.PreferredNodeAddress == nodeAddress
+	return c.PreferredNodeAddress != "" && c.PreferredNodeAddress == nodeAddress
 }
 
 func (s *stickyNodes) Failure(d *StickyDetails) error {

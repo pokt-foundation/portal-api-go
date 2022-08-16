@@ -16,9 +16,15 @@ const (
 	LEFT JOIN stickiness_options AS so ON lb.lb_id=so.lb_id
 	LEFT JOIN lb_apps AS la ON lb.lb_id=la.lb_id
 	GROUP BY lb.lb_id, lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.origins`
+	selectStickinessOptions = `
+	SELECT lb_id, duration, sticky_max, stickiness, origins
+	FROM stickiness_options WHERE lb_id = $1`
 	insertLoadBalancerScript = `
 	INSERT into loadbalancers (lb_id, name, user_id, request_timeout, gigastake, gigastake_redirect, created_at, updated_at)
 	VALUES (:lb_id, :name, :user_id, :request_timeout, :gigastake, :gigastake_redirect, :created_at, :updated_at)`
+	insertStickinessOptionsScript = `
+	INSERT into stickiness_options (lb_id, duration, sticky_max, stickiness, origins)
+	VALUES (:lb_id, :duration, :sticky_max, :stickiness, :origins)`
 	insertLbAppsScript = `
 	INSERT into lb_apps (lb_id, app_id)
 	VALUES (:lb_id, :app_id)`
@@ -26,6 +32,10 @@ const (
 	UPDATE loadbalancers
 	SET name = COALESCE($1, name), updated_at = $2
 	WHERE lb_id = $3`
+	updateStickinessOptions = `
+	UPDATE stickiness_options
+	SET duration = :duration, sticky_max = :sticky_max, stickiness = :stickiness, origins = :origins
+	WHERE lb_id = :lb_id`
 	removeLoadBalancer = `
 	UPDATE loadbalancers
 	SET user_id = '', updated_at = $1
@@ -85,6 +95,30 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 	}
 }
 
+type dbLoadBalancerJSON struct {
+	LbID              string `json:"lb_id"`
+	Name              string `json:"name"`
+	UserID            string `json:"user_id"`
+	RequestTimeout    int    `json:"request_timeout"`
+	Gigastake         bool   `json:"gigastake"`
+	GigastakeRedirect bool   `json:"gigastake_redirect"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
+}
+
+func (j dbLoadBalancerJSON) toOutput() *repository.LoadBalancer {
+	return &repository.LoadBalancer{
+		ID:                j.LbID,
+		Name:              j.Name,
+		UserID:            j.UserID,
+		RequestTimeout:    j.RequestTimeout,
+		Gigastake:         j.Gigastake,
+		GigastakeRedirect: j.GigastakeRedirect,
+		CreatedAt:         psqlDateToTime(j.CreatedAt),
+		UpdatedAt:         psqlDateToTime(j.UpdatedAt),
+	}
+}
+
 type insertLoadBalancer struct {
 	LbID              string         `db:"lb_id"`
 	Name              sql.NullString `db:"name"`
@@ -106,6 +140,75 @@ func extractInsertLoadBalancer(loadBalancer *repository.LoadBalancer) *insertLoa
 		GigastakeRedirect: loadBalancer.GigastakeRedirect,
 		CreatedAt:         loadBalancer.CreatedAt,
 		UpdatedAt:         loadBalancer.UpdatedAt,
+	}
+}
+
+type dbStickinessOptionsJSON struct {
+	LbID       string   `json:"lb_id"`
+	Duration   string   `json:"duration"`
+	Origins    []string `json:"origins"`
+	StickyMax  int      `json:"sticky_max"`
+	Stickiness bool     `json:"stickiness"`
+}
+
+func (j dbStickinessOptionsJSON) toOutput() *repository.StickyOptions {
+	return &repository.StickyOptions{
+		ID:            j.LbID,
+		Duration:      j.Duration,
+		StickyOrigins: j.Origins,
+		StickyMax:     j.StickyMax,
+		Stickiness:    j.Stickiness,
+	}
+}
+
+type insertStickinessOptions struct {
+	LbID       string         `db:"lb_id"`
+	Duration   sql.NullString `db:"duration"`
+	Origins    pq.StringArray `db:"origins"`
+	StickyMax  sql.NullInt64  `db:"sticky_max"`
+	Stickiness bool           `db:"stickiness"`
+}
+
+func (i *insertStickinessOptions) isNotNull() bool {
+	return i.Duration.Valid || len(i.Origins) > 0 || i.StickyMax.Valid
+}
+
+func (i *insertStickinessOptions) isUpdatable() bool {
+	return i != nil
+}
+
+func (i *insertStickinessOptions) read(lbID string, driver *PostgresDriver) (updatable, error) {
+	var options insertStickinessOptions
+
+	err := driver.Get(&options, selectStickinessOptions, lbID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &options, nil
+}
+
+func convertRepositoryToDBStickinessOptions(id string, options *repository.StickyOptions) *insertStickinessOptions {
+	if options == nil {
+		return nil
+	}
+
+	return &insertStickinessOptions{
+		LbID:       id,
+		Duration:   newSQLNullString(options.Duration),
+		Origins:    options.StickyOrigins,
+		StickyMax:  newSQLNullInt64(int64(options.StickyMax)),
+		Stickiness: options.Stickiness,
+	}
+}
+
+func extractInsertStickinessOptions(lb *repository.LoadBalancer) *insertStickinessOptions {
+	return &insertStickinessOptions{
+		LbID:       lb.ID,
+		Duration:   newSQLNullString(lb.StickyOptions.Duration),
+		Origins:    lb.StickyOptions.StickyOrigins,
+		StickyMax:  newSQLNullInt64(int64(lb.StickyOptions.StickyMax)),
+		Stickiness: lb.StickyOptions.Stickiness,
 	}
 }
 
@@ -158,6 +261,13 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 	loadBalancer.UpdatedAt = time.Now()
 
 	insertLoadBalancer := extractInsertLoadBalancer(loadBalancer)
+
+	nullables := []nullable{}
+	nullablesScripts := []string{}
+
+	nullables = append(nullables, extractInsertStickinessOptions(loadBalancer))
+	nullablesScripts = append(nullablesScripts, insertStickinessOptionsScript)
+
 	insertsLbApps := extractInsertLbApps(loadBalancer)
 
 	tx, err := d.Beginx()
@@ -168,6 +278,15 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 	_, err = tx.NamedExec(insertLoadBalancerScript, insertLoadBalancer)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := 0; i < len(nullables); i++ {
+		if nullables[i].isNotNull() {
+			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	for _, insert := range insertsLbApps {
@@ -190,12 +309,32 @@ func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate *repositor
 		return ErrNoFieldsToUpdate
 	}
 
-	_, err := d.Exec(updateLoadBalancer, newSQLNullString(fieldsToUpdate.Name), time.Now(), id)
+	tx, err := d.Beginx()
 	if err != nil {
 		return err
 	}
 
-	return nil
+	_, err = tx.Exec(updateLoadBalancer, newSQLNullString(fieldsToUpdate.Name), time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	updates := []*update{}
+
+	updates = append(updates, &update{
+		insertScript: insertStickinessOptionsScript,
+		updateScript: updateStickinessOptions,
+		toUpdate:     convertRepositoryToDBStickinessOptions(id, fieldsToUpdate.StickyOptions),
+	})
+
+	for _, update := range updates {
+		err = d.doUpdate(id, update, tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 // UpdateLoadBalancer updates fields available in options in db

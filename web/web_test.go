@@ -124,7 +124,7 @@ func TestBuildRelayOptions(t *testing.T) {
 				URL: &url.URL{
 					Path: "/invalid-path",
 				},
-				Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"body": "body"}`))), //&httpRequestBody{[]byte("body")},
+				Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"body": "body"}`))), // &httpRequestBody{[]byte("body")},
 			},
 			expectedErr: ErrInvalidPath,
 		},
@@ -182,7 +182,7 @@ func TestGetHttpServer(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := fakeRelayer{}
-			httpServer := GetHttpServer(&f, logger.New())
+			httpServer := GetHTTPServer(&f, logger.New())
 			//TODO: use httptest.NewRequest
 			req := &http.Request{
 				Method: http.MethodPost,

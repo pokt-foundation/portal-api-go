@@ -14,14 +14,20 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type, a.first_date_surpassed,
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.first_date_surpassed, 
 	ga.address AS ga_address, ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
+	al.custom_limit, al.plan_type, pp.daily_limit as plan_limit
 	FROM applications AS a
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
-	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id`
+	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
+	LEFT JOIN app_limits AS al ON a.application_id=al.application_id
+	LEFT JOIN pay_plans AS pp ON al.pay_plan=pp.plan_type`
+	selectAppLimit = `
+	SELECT application_id, pay_plan, custom_limit
+	FROM app_limits WHERE application_id = $1`
 	selectGatewaySettings = `
 	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
 	FROM gateway_settings WHERE application_id = $1`
@@ -29,8 +35,11 @@ const (
 	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
 	FROM notification_settings WHERE application_id = $1`
 	insertApplicationScript = `
-	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, status, created_at, updated_at)
-	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :status, :created_at, :updated_at)`
+	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, status, dummy, created_at, updated_at)
+	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :status, :dummy, :created_at, :updated_at)`
+	insertAppLimitScript = `
+	INSERT into app_limits (application_id, pay_plan, custom_limit)
+	VALUES (:application_id, :pay_plan, :custom_limit)`
 	insertGatewayAATScript = `
 	INSERT into gateway_aat (application_id, address, client_public_key, private_key, public_key, signature, version)
 	VALUES (:application_id, :address, :client_public_key, :private_key, :public_key, :signature, :version)`
@@ -42,8 +51,12 @@ const (
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), first_date_surpassed = COALESCE($4, first_date_surpassed), updated_at = $5
-	WHERE application_id = $6`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), first_date_surpassed = COALESCE($3, first_date_surpassed), updated_at = $4
+	WHERE application_id = $5`
+	updateAppLimitScript = `
+	UPDATE app_limits
+	SET pay_plan = :pay_plan, custom_limit = :custom_limit
+	WHERE application_id = :application_id`
 	updateFirstDateSurpassedScript = `
 	UPDATE applications
 	SET first_date_surpassed = :first_date_surpassed, updated_at = :updated_at
@@ -85,7 +98,6 @@ type dbApplication struct {
 	PAAdress             sql.NullString `db:"pa_address"`
 	SecretKey            sql.NullString `db:"secret_key"`
 	URL                  sql.NullString `db:"url"`
-	PayPlanType          sql.NullString `db:"pay_plan_type"`
 	FirstDateSurpassed   sql.NullTime   `db:"first_date_surpassed"`
 	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
 	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
@@ -99,6 +111,9 @@ type dbApplication struct {
 	Half                 sql.NullBool   `db:"on_half"`
 	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
 	Full                 sql.NullBool   `db:"on_full"`
+	PlanType             sql.NullString `db:"plan_type"`
+	CustomLimit          sql.NullInt32  `db:"custom_limit"`
+	PlanLimit            sql.NullInt32  `db:"plan_limit"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
@@ -113,11 +128,11 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Description:        a.Description.String,
 		Owner:              a.Owner.String,
 		URL:                a.URL.String,
-		PayPlanType:        repository.PayPlanType(a.PayPlanType.String),
-		FirstDateSurpassed: &a.FirstDateSurpassed.Time,
 		Dummy:              a.Dummy.Bool,
+		FirstDateSurpassed: a.FirstDateSurpassed.Time,
 		CreatedAt:          a.CreatedAt.Time,
 		UpdatedAt:          a.UpdatedAt.Time,
+
 		GatewayAAT: repository.GatewayAAT{
 			Address:              a.GAAddress.String,
 			ApplicationPublicKey: a.GAPublicKey.String,
@@ -130,10 +145,17 @@ func (a *dbApplication) toApplication() *repository.Application {
 			SecretKey:            a.SecretKey.String,
 			SecretKeyRequired:    a.SecretKeyRequired.Bool,
 			WhitelistBlockchains: a.WhitelistBlockchains,
-			WhitelistContracts:   stringToWhitelistContracts(a.WhitelistContracts),
-			WhitelistMethods:     stringToWhitelistMethods(a.WhitelistMethods),
+			WhitelistContracts:   nullStringToWhitelistContracts(a.WhitelistContracts),
+			WhitelistMethods:     nullStringToWhitelistMethods(a.WhitelistMethods),
 			WhitelistOrigins:     a.WhitelistOrigins,
 			WhitelistUserAgents:  a.WhitelistUserAgents,
+		},
+		Limit: repository.AppLimit{
+			PayPlan: repository.PayPlan{
+				Type:  repository.PayPlanType(a.PlanType.String),
+				Limit: int(a.PlanLimit.Int32),
+			},
+			CustomLimit: int(a.CustomLimit.Int32),
 		},
 		NotificationSettings: repository.NotificationSettings{
 			SignedUp:      a.SignedUp.Bool,
@@ -145,6 +167,38 @@ func (a *dbApplication) toApplication() *repository.Application {
 	}
 }
 
+type dbAppJSON struct {
+	ApplicationID      string `json:"application_id"`
+	UserID             string `json:"user_id"`
+	Name               string `json:"name"`
+	ContactEmail       string `json:"contact_email"`
+	Description        string `json:"description"`
+	Owner              string `json:"owner"`
+	URL                string `json:"url"`
+	Status             string `json:"status"`
+	CreatedAt          string `json:"created_at"`
+	UpdatedAt          string `json:"updated_at"`
+	FirstDateSurpassed string `json:"first_date_surpassed"`
+	Dummy              bool   `json:"dummy"`
+}
+
+func (j dbAppJSON) toOutput() *repository.Application {
+	return &repository.Application{
+		ID:                 j.ApplicationID,
+		UserID:             j.UserID,
+		Name:               j.Name,
+		ContactEmail:       j.ContactEmail,
+		Description:        j.Description,
+		Owner:              j.Owner,
+		URL:                j.URL,
+		Status:             repository.AppStatus(j.Status),
+		CreatedAt:          psqlDateToTime(j.CreatedAt),
+		UpdatedAt:          psqlDateToTime(j.UpdatedAt),
+		FirstDateSurpassed: psqlDateToTime(j.FirstDateSurpassed),
+		Dummy:              j.Dummy,
+	}
+}
+
 type insertDBApp struct {
 	ApplicationID string         `db:"application_id"`
 	UserID        sql.NullString `db:"user_id"`
@@ -153,10 +207,10 @@ type insertDBApp struct {
 	Description   sql.NullString `db:"description"`
 	Owner         sql.NullString `db:"owner"`
 	URL           sql.NullString `db:"url"`
-	PayPlanType   sql.NullString `db:"pay_plan_type"`
 	Status        sql.NullString `db:"status"`
 	CreatedAt     time.Time      `db:"created_at"`
 	UpdatedAt     time.Time      `db:"updated_at"`
+	Dummy         bool           `db:"dummy"`
 }
 
 func extractInsertDBApp(app *repository.Application) *insertDBApp {
@@ -168,10 +222,93 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 		Description:   newSQLNullString(app.Description),
 		Owner:         newSQLNullString(app.Owner),
 		URL:           newSQLNullString(app.URL),
-		PayPlanType:   newSQLNullString(string(app.PayPlanType)),
 		Status:        newSQLNullString(string(app.Status)),
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
+		Dummy:         app.Dummy,
+	}
+}
+
+type dbAppLimitJSON struct {
+	ApplicationID string `json:"application_id"`
+	PlanType      string `json:"pay_plan"`
+	CustomLimit   int    `json:"custom_limit"`
+}
+
+func (j dbAppLimitJSON) toOutput() *repository.AppLimit {
+	return &repository.AppLimit{
+		ID: j.ApplicationID,
+		PayPlan: repository.PayPlan{
+			Type: repository.PayPlanType(j.PlanType),
+		},
+		CustomLimit: j.CustomLimit,
+	}
+}
+
+type insertAppLimit struct {
+	ApplicationID string         `db:"application_id"`
+	PayPlan       sql.NullString `db:"pay_plan"`
+	CustomLimit   sql.NullInt32  `db:"custom_limit"`
+}
+
+func (i *insertAppLimit) isNotNull() bool {
+	return i.PayPlan.Valid || i.CustomLimit.Valid
+}
+
+func (i *insertAppLimit) isUpdatable() bool {
+	return i != nil
+}
+
+func (i *insertAppLimit) read(appID string, driver *PostgresDriver) (updatable, error) {
+	var limit insertAppLimit
+
+	err := driver.Get(&limit, selectAppLimit, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &limit, nil
+}
+
+func extractInsertDBAppLimit(app *repository.Application) *insertAppLimit {
+	return &insertAppLimit{
+		ApplicationID: app.ID,
+		PayPlan:       newSQLNullString(string(app.Limit.PayPlan.Type)),
+		CustomLimit:   newSQLNullInt32(int32(app.Limit.CustomLimit)),
+	}
+}
+
+func convertRepositoryToDBAppLimit(id string, limit *repository.AppLimit) *insertAppLimit {
+	if limit == nil {
+		return nil
+	}
+
+	return &insertAppLimit{
+		ApplicationID: id,
+		PayPlan:       newSQLNullString(string(limit.PayPlan.Type)),
+		CustomLimit:   newSQLNullInt32(int32(limit.CustomLimit)),
+	}
+}
+
+type dbGatewayAATJSON struct {
+	ApplicationID   string `json:"application_id"`
+	Address         string `json:"address"`
+	ClientPublicKey string `json:"client_public_key"`
+	PrivateKey      string `json:"private_key"`
+	PublicKey       string `json:"public_key"`
+	Signature       string `json:"signature"`
+	Version         string `json:"version"`
+}
+
+func (j dbGatewayAATJSON) toOutput() *repository.GatewayAAT {
+	return &repository.GatewayAAT{
+		ID:                   j.ApplicationID,
+		Address:              j.Address,
+		ClientPublicKey:      j.ClientPublicKey,
+		PrivateKey:           j.PrivateKey,
+		ApplicationPublicKey: j.PublicKey,
+		ApplicationSignature: j.Signature,
+		Version:              j.Version,
 	}
 }
 
@@ -186,7 +323,7 @@ type insertGatewayAAT struct {
 }
 
 func (i *insertGatewayAAT) isNotNull() bool {
-	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
+	return i.Address.Valid || i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid || i.PrivateKey.Valid
 }
 
 func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
@@ -198,6 +335,30 @@ func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
 		PublicKey:       newSQLNullString(app.GatewayAAT.ApplicationPublicKey),
 		Signature:       newSQLNullString(app.GatewayAAT.ApplicationSignature),
 		Version:         newSQLNullString(app.GatewayAAT.Version),
+	}
+}
+
+type dbGatewaySettingsJSON struct {
+	ApplicationID        string   `json:"application_id"`
+	SecretKey            string   `json:"secret_key"`
+	SecretKeyRequired    bool     `json:"secret_key_required"`
+	WhitelistContracts   string   `json:"whitelist_contracts"`
+	WhitelistMethods     string   `json:"whitelist_methods"`
+	WhitelistOrigins     []string `json:"whitelist_origins"`
+	WhitelistUserAgents  []string `json:"whitelist_user_agents"`
+	WhitelistBlockchains []string `json:"whitelist_blockchains"`
+}
+
+func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
+	return &repository.GatewaySettings{
+		ID:                   j.ApplicationID,
+		SecretKey:            j.SecretKey,
+		SecretKeyRequired:    j.SecretKeyRequired,
+		WhitelistContracts:   stringToWhitelistContracts(j.WhitelistContracts),
+		WhitelistMethods:     stringToWhitelistMethods(j.WhitelistMethods),
+		WhitelistOrigins:     j.WhitelistOrigins,
+		WhitelistUserAgents:  j.WhitelistUserAgents,
+		WhitelistBlockchains: j.WhitelistBlockchains,
 	}
 }
 
@@ -282,14 +443,18 @@ func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySet
 	}
 }
 
-func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
-	contracts := []repository.WhitelistContract{}
-
+func nullStringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
 	if !rawContracts.Valid {
-		return contracts
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
+	return stringToWhitelistContracts(rawContracts.String)
+}
+
+func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContract {
+	contracts := []repository.WhitelistContract{}
+
+	_ = json.Unmarshal([]byte(rawContracts), &contracts)
 
 	for i, contract := range contracts {
 		for j, inContract := range contract.Contracts {
@@ -300,14 +465,18 @@ func stringToWhitelistContracts(rawContracts sql.NullString) []repository.Whitel
 	return contracts
 }
 
-func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
-	methods := []repository.WhitelistMethod{}
-
+func nullStringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
 	if !rawMethods.Valid {
-		return methods
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
+	return stringToWhitelistMethods(rawMethods.String)
+}
+
+func stringToWhitelistMethods(rawMethods string) []repository.WhitelistMethod {
+	methods := []repository.WhitelistMethod{}
+
+	_ = json.Unmarshal([]byte(rawMethods), &methods)
 
 	for i, method := range methods {
 		for j, inMethod := range method.Methods {
@@ -316,6 +485,26 @@ func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistM
 	}
 
 	return methods
+}
+
+type dbNotificationSettingsJSON struct {
+	ApplicationID string `json:"application_id"`
+	SignedUp      bool   `json:"signed_up"`
+	Quarter       bool   `json:"on_quarter"`
+	Half          bool   `json:"on_half"`
+	ThreeQuarters bool   `json:"on_three_quarters"`
+	Full          bool   `json:"on_full"`
+}
+
+func (j dbNotificationSettingsJSON) toOutput() *repository.NotificationSettings {
+	return &repository.NotificationSettings{
+		ID:            j.ApplicationID,
+		SignedUp:      j.SignedUp,
+		Quarter:       j.Quarter,
+		Half:          j.Half,
+		ThreeQuarters: j.ThreeQuarters,
+		Full:          j.Full,
+	}
 }
 
 type insertNotificationSettings struct {
@@ -390,17 +579,13 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	return applications, nil
 }
 
-type nullable interface {
-	isNotNull() bool
-}
-
 // WriteApplication saves input application in the database
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
 	if !repository.ValidAppStatuses[app.Status] {
 		return nil, ErrInvalidAppStatus
 	}
 
-	if !repository.ValidPayPlanTypes[app.PayPlanType] {
+	if !repository.ValidPayPlanTypes[app.Limit.PayPlan.Type] {
 		return nil, ErrInvalidPayPlanType
 	}
 
@@ -414,6 +599,7 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	app.UpdatedAt = time.Now()
 
 	insertApp := extractInsertDBApp(app)
+	insertAppLimit := extractInsertDBAppLimit(app)
 
 	nullables := []nullable{}
 	nullablesScripts := []string{}
@@ -437,6 +623,11 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 		return nil, err
 	}
 
+	_, err = tx.NamedExec(insertAppLimitScript, insertAppLimit)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < len(nullables); i++ {
 		if nullables[i].isNotNull() {
 			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
@@ -447,44 +638,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	}
 
 	return app, tx.Commit()
-}
-
-type updatable interface {
-	isUpdatable() bool
-	read(appID string, driver *PostgresDriver) (updatable, error)
-}
-
-type update struct {
-	insertScript string
-	updateScript string
-	toUpdate     updatable
-}
-
-func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
-	if !update.toUpdate.isUpdatable() {
-		return nil
-	}
-
-	_, err := update.toUpdate.read(id, d)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			_, err = tx.NamedExec(update.insertScript, update.toUpdate)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		return err
-	}
-
-	_, err = tx.NamedExec(update.updateScript, update.toUpdate)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // UpdateApplication updates fields available in options in db
@@ -501,7 +654,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return ErrInvalidAppStatus
 	}
 
-	if !repository.ValidPayPlanTypes[fieldsToUpdate.PayPlanType] {
+	if fieldsToUpdate.Limit != nil && !repository.ValidPayPlanTypes[fieldsToUpdate.Limit.PayPlan.Type] {
 		return ErrInvalidPayPlanType
 	}
 
@@ -511,12 +664,18 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 	}
 
 	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)),
-		newSQLNullString(string(fieldsToUpdate.PayPlanType)), newSQLNullTime(fieldsToUpdate.FirstDateSurpassed), time.Now(), id)
+		newSQLNullTime(fieldsToUpdate.FirstDateSurpassed), time.Now(), id)
 	if err != nil {
 		return err
 	}
 
 	updates := []*update{}
+
+	updates = append(updates, &update{
+		insertScript: insertAppLimitScript,
+		updateScript: updateAppLimitScript,
+		toUpdate:     convertRepositoryToDBAppLimit(id, fieldsToUpdate.Limit),
+	})
 
 	updates = append(updates, &update{
 		insertScript: insertGatewaySettingsScript,

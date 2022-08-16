@@ -7,14 +7,14 @@ const (
 )
 
 type dbPayPlan struct {
-	PlanType   string `db:"plan_type"`
+	Type       string `db:"plan_type"`
 	DailyLimit int    `db:"daily_limit"`
 }
 
 func (d *dbPayPlan) toPayPlan() *repository.PayPlan {
 	return &repository.PayPlan{
-		PlanType:   repository.PayPlanType(d.PlanType),
-		DailyLimit: d.DailyLimit,
+		Type:  repository.PayPlanType(d.Type),
+		Limit: d.DailyLimit,
 	}
 }
 

@@ -22,7 +22,7 @@ const (
 )
 
 type settings struct {
-	RpcUrls    []string
+	RPCURLs    []string
 	PrivateKey string
 	Port       int
 	LogLevel   logger.Level
@@ -55,9 +55,9 @@ func gatherSettings(args []string) (settings, error) {
 
 	rpcUrls := strings.Split(urls, ",")
 	if len(rpcUrls) < 1 {
-		return settings{}, fmt.Errorf("Invalid list of RPC URLs: %q\n", urls)
+		return settings{}, fmt.Errorf("invalid list of rpc urls: %q", urls)
 	}
-	s.RpcUrls = rpcUrls
+	s.RPCURLs = rpcUrls
 	return s, nil
 }
 
@@ -75,7 +75,7 @@ func main() {
 		fmt.Printf("Error setting up repository: %v\n", err)
 	}
 
-	sessionManager := session.NewSessionManager(settings.RpcUrls)
+	sessionManager := session.NewSessionManager(settings.RPCURLs)
 
 	relayerSettings := relay.FreemiumSettings()
 	relayerSettings.DefaultStickyOptions = repository.StickyOptions{
@@ -84,7 +84,7 @@ func main() {
 	relayerSettings.DefaultClientStickyOptions = sticky.StickyClient{}
 
 	relayer, err := relay.NewRelayServer(
-		settings.RpcUrls,
+		settings.RPCURLs,
 		settings.PrivateKey,
 		relayerSettings,
 		repo,
@@ -97,6 +97,10 @@ func main() {
 	}
 
 	log.Info("Starting http server")
-	http.HandleFunc("/", web.GetHttpServer(relayer, log))
-	http.ListenAndServe(fmt.Sprintf(":%d", settings.Port), nil)
+	http.HandleFunc("/", web.GetHTTPServer(relayer, log))
+
+	err = http.ListenAndServe(fmt.Sprintf(":%d", settings.Port), nil)
+	if err != nil {
+		panic(err)
+	}
 }

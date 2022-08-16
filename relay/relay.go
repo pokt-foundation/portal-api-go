@@ -39,7 +39,7 @@ type RelayOptions struct {
 	Path           string
 	RequestID      uuid.UUID
 	BlockchainID   string
-	RpcID          int
+	RPCID          int
 	ApplicationID  string
 	LoadBalancerID string
 }
@@ -147,11 +147,11 @@ func (r *relayServer) RelayWithApp(relayOptions RelayOptions) error {
 }
 
 type RelayDetails struct {
-	repository.Blockchain
-	*repository.Application
-	repository.LoadBalancer
-	RelayOptions
-	sticky.StickyDetails
+	Blockchain    repository.Blockchain
+	Application   *repository.Application
+	LoadBalancer  repository.LoadBalancer
+	RelayOptions  RelayOptions
+	StickyDetails sticky.StickyDetails
 }
 
 func (r *relayServer) RelayWithLb(relayOptions RelayOptions) error {
@@ -321,11 +321,16 @@ func (r *relayServer) sendRelay(details *RelayDetails) error {
 	if err != nil {
 		log.WithFields(logger.Fields{"error": err}).Info("Error relaying")
 		// TODO: differentiate user errors from node errors
-		r.nodeSticker.Failure(&details.StickyDetails)
+		err := r.nodeSticker.Failure(&details.StickyDetails)
 		return err
 	}
 
-	r.nodeSticker.Success(&details.StickyDetails)
+	err = r.nodeSticker.Success(&details.StickyDetails)
+	if err != nil {
+		log.WithFields(logger.Fields{"error": err}).Info("Error setting success")
+		return err
+	}
+
 	log.WithFields(logger.Fields{"relayOutput": relayOutput}).Info("Received relay response")
 
 	return parseRelayResponse(relayOutput)

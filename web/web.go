@@ -22,10 +22,10 @@ var (
 	idExp    = regexp.MustCompile(`^[[:alnum:]-]{24}~`)
 )
 
-type HttpRequestError error
+type HTTPRequestError error
 
 var (
-	ErrInvalidPath HttpRequestError = fmt.Errorf("Path does not match any of the accepted paths.")
+	ErrInvalidPath HTTPRequestError = fmt.Errorf("path does not match any of the accepted paths")
 )
 
 func ids(path string) (string, string, string, error) {
@@ -114,7 +114,7 @@ func buildRelayOptions(req *http.Request) (relay.RelayOptions, error) {
 }
 
 // serves: /v1/{id}, /v1/lb/{id}
-func GetHttpServer(r relay.Relayer, l *logger.Logger) func(w http.ResponseWriter, req *http.Request) {
+func GetHTTPServer(r relay.Relayer, l *logger.Logger) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		log := l.WithFields(logger.Fields{"Request": *req})
 		if req.Method != http.MethodPost {

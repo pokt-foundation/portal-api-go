@@ -19,23 +19,45 @@ type Repository interface {
 
 // TODO: identify fields that should be stored encrypted in-memory
 type Application struct {
-	ID                   string               `json:"id"`
-	UserID               string               `json:"userID"`
-	Name                 string               `json:"name"`
-	ContactEmail         string               `json:"contactEmail"`
-	Description          string               `json:"description"`
-	Owner                string               `json:"owner"`
-	URL                  string               `json:"url"`
-	Status               AppStatus            `json:"status"`
-	Dummy                bool                 `json:"dummy"`
-	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
-	FirstDateSurpassed   *time.Time           `json:"firstDateSurpassed"`
+	ID                 string    `json:"id"`
+	UserID             string    `json:"userID"`
+	Name               string    `json:"name"`
+	ContactEmail       string    `json:"contactEmail"`
+	Description        string    `json:"description"`
+	Owner              string    `json:"owner"`
+	URL                string    `json:"url"`
+	Dummy              bool      `json:"dummy"`
+	Status             AppStatus `json:"status"`
+	FirstDateSurpassed time.Time `json:"firstDateSurpassed"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
+	Limit                AppLimit             `json:"appLimit"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
-	Limits               AppLimits            `json:"limits"`
-	CreatedAt            time.Time            `json:"createdAt"`
-	UpdatedAt            time.Time            `json:"updatedAt"`
+}
+
+func (a *Application) Table() Table {
+	return TableApplications
+}
+
+type AppLimit struct {
+	ID          string  `json:"id,omitempty"`
+	PayPlan     PayPlan `json:"payPlan"`
+	CustomLimit int     `json:"customLimit"`
+}
+
+func (a *AppLimit) DailyLimit() int {
+	if a.PayPlan.Type == Enterprise {
+		return a.CustomLimit
+	}
+
+	return a.PayPlan.Limit
+}
+
+func (a *AppLimit) Table() Table {
+	return TableAppLimits
 }
 
 type AppStatus string
@@ -77,6 +99,11 @@ var (
 	}
 )
 
+type PayPlan struct {
+	Type  PayPlanType `json:"plan"`
+	Limit int         `json:"limit"`
+}
+
 type PayPlanType string
 
 const (
@@ -85,6 +112,7 @@ const (
 	TestPlan90k  PayPlanType = "TEST_PLAN_90K"
 	FreetierV0   PayPlanType = "FREETIER_V0"
 	PayAsYouGoV0 PayPlanType = "PAY_AS_YOU_GO_V0"
+	Enterprise   PayPlanType = "ENTERPRISE"
 )
 
 var (
@@ -95,6 +123,7 @@ var (
 		TestPlan90k:  true,
 		FreetierV0:   true,
 		PayAsYouGoV0: true,
+		Enterprise:   true,
 	}
 )
 
@@ -109,19 +138,14 @@ type AppLimits struct {
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 }
 
-type PayPlan struct {
-	PlanType   PayPlanType `json:"planType"`
-	DailyLimit int         `json:"dailyLimit"`
-}
-
 // UpdateApplication struct holding possible fields to update
 type UpdateApplication struct {
 	Name                 string                `json:"name,omitempty"`
 	Status               AppStatus             `json:"status,omitempty"`
-	PayPlanType          PayPlanType           `json:"payPlanType,omitempty"`
 	FirstDateSurpassed   time.Time             `json:"firstDateSurpassed,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
+	Limit                *AppLimit             `json:"appLimit,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`
 }
 
@@ -131,6 +155,7 @@ type UpdateFirstDateSurpassed struct {
 }
 
 type GatewayAAT struct {
+	ID                   string `json:"id,omitempty"`
 	Address              string `json:"address"`
 	ApplicationPublicKey string `json:"applicationPublicKey"`
 	ApplicationSignature string `json:"applicationSignature"`
@@ -139,7 +164,12 @@ type GatewayAAT struct {
 	Version              string `json:"version"`
 }
 
+func (a *GatewayAAT) Table() Table {
+	return TableGatewayAAT
+}
+
 type GatewaySettings struct {
+	ID                   string              `json:"id,omitempty"`
 	SecretKey            string              `json:"secretKey"`
 	SecretKeyRequired    bool                `json:"secretKeyRequired"`
 	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
@@ -149,22 +179,31 @@ type GatewaySettings struct {
 	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
 }
 
+func (s *GatewaySettings) Table() Table {
+	return TableGatewaySettings
+}
+
 type WhitelistContract struct {
 	BlockchainID string   `json:"blockchainID"`
 	Contracts    []string `json:"contracts"`
 }
 
 type WhitelistMethod struct {
-	BlockchainID string
+	BlockchainID string   `json:"blockchainID"`
 	Methods      []string `json:"methods"`
 }
 
 type NotificationSettings struct {
-	SignedUp      bool `json:"signedUp"`
-	Quarter       bool `json:"quarter"`
-	Half          bool `json:"half"`
-	ThreeQuarters bool `json:"threeQuarters"`
-	Full          bool `json:"full"`
+	ID            string `json:"id,omitempty"`
+	SignedUp      bool   `json:"signedUp"`
+	Quarter       bool   `json:"quarter"`
+	Half          bool   `json:"half"`
+	ThreeQuarters bool   `json:"threeQuarters"`
+	Full          bool   `json:"full"`
+}
+
+func (s *NotificationSettings) Table() Table {
+	return TableNotificationSettings
 }
 
 type Blockchain struct {
@@ -190,6 +229,10 @@ type Blockchain struct {
 	UpdatedAt         time.Time        `json:"updatedAt"`
 }
 
+func (b *Blockchain) Table() Table {
+	return TableBlockchains
+}
+
 type Redirect struct {
 	ID             string    `json:"id"`
 	BlockchainID   string    `json:"blockchainID"`
@@ -200,12 +243,20 @@ type Redirect struct {
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
+func (r *Redirect) Table() Table {
+	return TableRedirects
+}
+
 type SyncCheckOptions struct {
 	BlockchainID string `json:"blockchainID"`
 	Body         string `json:"body"`
 	Path         string `json:"path"`
 	ResultKey    string `json:"resultKey"`
 	Allowance    int    `json:"allowance"`
+}
+
+func (o *SyncCheckOptions) Table() Table {
+	return TableSyncCheckOptions
 }
 
 // loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
@@ -236,17 +287,38 @@ type LoadBalancer struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+func (l *LoadBalancer) Table() Table {
+	return TableLoadBalancers
+}
+
+// LbApp represents in DB relationships of lb and apps
+// do not change the tags, they're snake_case on purpose
+type LbApp struct {
+	LbID  string `json:"lb_id"`
+	AppID string `json:"app_id"`
+}
+
+func (l *LbApp) Table() Table {
+	return TableLbApps
+}
+
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
-	Name   string `json:"name,omitempty"`
-	Remove bool   `json:"remove,omitempty"`
+	Name          string         `json:"name,omitempty"`
+	StickyOptions *StickyOptions `json:"stickinessOptions,omitempty"`
+	Remove        bool           `json:"remove,omitempty"`
 }
 
 type StickyOptions struct {
+	ID            string   `json:"id,omitempty"`
 	Duration      string   `json:"duration"`
 	StickyOrigins []string `json:"stickyOrigins"`
 	StickyMax     int      `json:"stickyMax"`
 	Stickiness    bool     `json:"stickiness"`
+}
+
+func (s *StickyOptions) Table() Table {
+	return TableStickinessOptions
 }
 
 func (s *StickyOptions) IsEmpty() bool {
@@ -405,4 +477,37 @@ func loadData(file string, data interface{}) error {
 	}
 
 	return json.Unmarshal(contents, data)
+}
+
+type Table string
+
+const (
+	TableLoadBalancers        Table = "loadbalancers"
+	TableStickinessOptions    Table = "stickiness_options"
+	TableLbApps               Table = "lb_apps"
+	TableApplications         Table = "applications"
+	TableAppLimits            Table = "app_limits"
+	TableGatewayAAT           Table = "gateway_aat"
+	TableGatewaySettings      Table = "gateway_settings"
+	TableNotificationSettings Table = "notification_settings"
+	TableBlockchains          Table = "blockchains"
+	TableRedirects            Table = "redirects"
+	TableSyncCheckOptions     Table = "sync_check_options"
+)
+
+type Action string
+
+const (
+	ActionInsert Action = "INSERT"
+	ActionUpdate Action = "UPDATE"
+)
+
+type Notification struct {
+	Table  Table
+	Action Action
+	Data   SavedOnDB
+}
+
+type SavedOnDB interface {
+	Table() Table
 }
