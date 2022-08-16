@@ -34,6 +34,12 @@ const (
 	selectGatewaySettings = `
 	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
 	FROM gateway_settings WHERE application_id = $1`
+	selectAppLimits = `
+	SELECT application_id, daily_limit
+	FROM app_limits WHERE application_id = $1`
+	selectNotificationSettings = `
+	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
+	FROM notification_settings WHERE application_id = $1`
 	insertApplicationScript = `
 	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, created_at, updated_at)
 	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :created_at, :updated_at)`
@@ -60,8 +66,8 @@ const (
 	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), updated_at = $4
-	WHERE application_id = $5`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), updated_at = $3
+	WHERE application_id = $4`
 	removeApplication = `
 	UPDATE applications
 	SET status = COALESCE($1, status), updated_at = $2
@@ -69,6 +75,14 @@ const (
 	updateGatewaySettings = `
 	UPDATE gateway_settings
 	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents, whitelist_blockchains = :whitelist_blockchains
+	WHERE application_id = :application_id`
+	updateAppLimits = `
+	UPDATE app_limits
+	SET daily_limit = :daily_limit
+	WHERE application_id = :application_id`
+	updateNotificationSettings = `
+	UPDATE notification_settings
+	SET signed_up = :signed_up, on_quarter = :on_quarter, on_half = :on_half, on_three_quarters = :on_three_quarters, on_full = :on_full
 	WHERE application_id = :application_id`
 )
 
@@ -302,6 +316,21 @@ func (i *insertGatewaySettings) isNotNull() bool {
 		len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0 || len(i.WhitelistBlockchains) != 0
 }
 
+func (i *insertGatewaySettings) isUpdatable() bool {
+	return i != nil
+}
+
+func (i *insertGatewaySettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+	var settings insertGatewaySettings
+
+	err := driver.Get(&settings, selectGatewaySettings, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
 func marshalWhitelistContractsAndMethods(contracts []repository.WhitelistContract, methods []repository.WhitelistMethod) (string, string) {
 	var marshaledWhitelistContracts []byte
 	if len(contracts) > 0 {
@@ -317,6 +346,10 @@ func marshalWhitelistContractsAndMethods(contracts []repository.WhitelistContrac
 }
 
 func convertRepositoryToDBGatewaySettings(id string, settings *repository.GatewaySettings) *insertGatewaySettings {
+	if settings == nil {
+		return nil
+	}
+
 	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(settings.WhitelistContracts,
 		settings.WhitelistMethods)
 
@@ -397,6 +430,21 @@ func (i *insertNotificationSettings) isNotNull() bool {
 	return true
 }
 
+func (i *insertNotificationSettings) isUpdatable() bool {
+	return i != nil
+}
+
+func (i *insertNotificationSettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+	var settings insertNotificationSettings
+
+	err := driver.Get(&settings, selectNotificationSettings, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
 func extractInsertNotificationSettings(app *repository.Application) *insertNotificationSettings {
 	return &insertNotificationSettings{
 		ApplicationID: app.ID,
@@ -405,6 +453,21 @@ func extractInsertNotificationSettings(app *repository.Application) *insertNotif
 		Half:          app.NotificationSettings.Half,
 		ThreeQuarters: app.NotificationSettings.ThreeQuarters,
 		Full:          app.NotificationSettings.Full,
+	}
+}
+
+func convertRepositoryToDBNotificationSettings(id string, settings *repository.NotificationSettings) *insertNotificationSettings {
+	if settings == nil {
+		return nil
+	}
+
+	return &insertNotificationSettings{
+		ApplicationID: id,
+		SignedUp:      settings.SignedUp,
+		Quarter:       settings.Quarter,
+		Half:          settings.Half,
+		ThreeQuarters: settings.ThreeQuarters,
+		Full:          settings.Full,
 	}
 }
 
@@ -417,10 +480,36 @@ func (i *insertAppLimits) isNotNull() bool {
 	return i.DailyLimit.Valid
 }
 
+func (i *insertAppLimits) isUpdatable() bool {
+	return i != nil
+}
+
+func (i *insertAppLimits) read(appID string, driver *PostgresDriver) (updatable, error) {
+	var limits insertAppLimits
+
+	err := driver.Get(&limits, selectAppLimits, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &limits, nil
+}
+
 func extractInsertAppLimits(app *repository.Application) *insertAppLimits {
 	return &insertAppLimits{
 		ApplicationID: app.ID,
 		DailyLimit:    newSQLNullInt64(int64(app.Limits.DailyLimit)),
+	}
+}
+
+func convertRepositoryToDBAppLimits(id string, limits *repository.AppLimits) *insertAppLimits {
+	if limits == nil {
+		return nil
+	}
+
+	return &insertAppLimits{
+		ApplicationID: id,
+		DailyLimit:    newSQLNullInt64(int64(limits.DailyLimit)),
 	}
 }
 
@@ -509,26 +598,26 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	return app, tx.Commit()
 }
 
-func (d *PostgresDriver) readGatewaySettings(appID string) (*insertGatewaySettings, error) {
-	var settings insertGatewaySettings
-
-	err := d.Get(&settings, selectGatewaySettings, appID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &settings, nil
+type updatable interface {
+	isUpdatable() bool
+	read(appID string, driver *PostgresDriver) (updatable, error)
 }
 
-func (d *PostgresDriver) doUpdateGatewaySettings(id string, settings *repository.GatewaySettings, tx *sqlx.Tx) error {
-	if settings == nil {
+type update struct {
+	insertScript string
+	updateScript string
+	toUpdate     updatable
+}
+
+func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
+	if !update.toUpdate.isUpdatable() {
 		return nil
 	}
 
-	_, err := d.readGatewaySettings(id)
+	_, err := update.toUpdate.read(id, d)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			_, err = tx.NamedExec(insertGatewaySettingsScript, convertRepositoryToDBGatewaySettings(id, settings))
+			_, err = tx.NamedExec(update.insertScript, update.toUpdate)
 			if err != nil {
 				return err
 			}
@@ -539,7 +628,7 @@ func (d *PostgresDriver) doUpdateGatewaySettings(id string, settings *repository
 		return err
 	}
 
-	_, err = tx.NamedExec(updateGatewaySettings, convertRepositoryToDBGatewaySettings(id, settings))
+	_, err = tx.NamedExec(update.updateScript, update.toUpdate)
 	if err != nil {
 		return err
 	}
@@ -571,9 +660,31 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return err
 	}
 
-	err = d.doUpdateGatewaySettings(id, fieldsToUpdate.GatewaySettings, tx)
-	if err != nil {
-		return err
+	updates := []*update{}
+
+	updates = append(updates, &update{
+		insertScript: insertGatewaySettingsScript,
+		updateScript: updateGatewaySettings,
+		toUpdate:     convertRepositoryToDBGatewaySettings(id, fieldsToUpdate.GatewaySettings),
+	})
+
+	updates = append(updates, &update{
+		insertScript: insertAppLimitsScript,
+		updateScript: updateAppLimits,
+		toUpdate:     convertRepositoryToDBAppLimits(id, fieldsToUpdate.AppLimits),
+	})
+
+	updates = append(updates, &update{
+		insertScript: insertNotificationSettingsScript,
+		updateScript: updateNotificationSettings,
+		toUpdate:     convertRepositoryToDBNotificationSettings(id, fieldsToUpdate.NotificationSettings),
+	})
+
+	for _, update := range updates {
+		err = d.doUpdate(id, update, tx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
