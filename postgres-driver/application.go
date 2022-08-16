@@ -50,8 +50,8 @@ const (
 	INSERT into public_pocket_account (application_id, public_key, address)
 	VALUES (:application_id, :public_key, :address)`
 	insertGatewaySettingsScript = `
-	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents)
-	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents)`
+	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents, whitelist_blockchains)
+	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents, :whitelist_blockchains)`
 	insertNotificationSettingsScript = `
 	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
