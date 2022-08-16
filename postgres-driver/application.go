@@ -60,8 +60,12 @@ const (
 	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), status = COALESCE($3, status), updated_at = $4
+	SET name = COALESCE($1, name), status = COALESCE($2, status), user_id = COALESCE($3, user_id), updated_at = $4
 	WHERE application_id = $5`
+	removeApplication = `
+	UPDATE applications
+	SET status = COALESCE($1, status), updated_at = $2
+	WHERE application_id = $3`
 	updateGatewaySettings = `
 	UPDATE gateway_settings
 	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents
@@ -561,13 +565,31 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name),
-		newSQLNullString(fieldsToUpdate.UserID), newSQLNullString(string(fieldsToUpdate.Status)), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)), newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
 	if err != nil {
 		return err
 	}
 
 	err = d.doUpdateGatewaySettings(id, fieldsToUpdate.GatewaySettings, tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// RemoveApplication updates fields available in options in db
+func (d *PostgresDriver) RemoveApplication(id string) error {
+	if id == "" {
+		return ErrMissingID
+	}
+
+	tx, err := d.Beginx()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(removeApplication, newSQLNullString(string(repository.AwaitingGracePeriod)), time.Now(), id)
 	if err != nil {
 		return err
 	}
