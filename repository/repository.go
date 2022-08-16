@@ -92,7 +92,7 @@ type UpdateApplication struct {
 	Status               AppStatus             `json:"status,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
-	Remove               bool
+	Remove               bool                  `json:"remove,omitempty"`
 }
 
 type FreeTierAAT struct {
@@ -221,7 +221,7 @@ type LoadBalancer struct {
 type UpdateLoadBalancer struct {
 	Name   string `json:"name,omitempty"`
 	UserID string `json:"userID,omitempty"`
-	Remove bool
+	Remove bool   `json:"remove,omitempty"`
 }
 
 type StickyOptions struct {
