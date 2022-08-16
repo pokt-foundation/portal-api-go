@@ -88,7 +88,6 @@ type AppLimits struct {
 // UpdateApplication struct holding possible fields to update
 type UpdateApplication struct {
 	Name                 string                `json:"name,omitempty"`
-	UserID               string                `json:"userID,omitempty"`
 	Status               AppStatus             `json:"status,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
@@ -220,7 +219,6 @@ type LoadBalancer struct {
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
 	Name   string `json:"name,omitempty"`
-	UserID string `json:"userID,omitempty"`
 	Remove bool   `json:"remove,omitempty"`
 }
 

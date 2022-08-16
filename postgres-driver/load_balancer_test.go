@@ -116,23 +116,21 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	driver := NewPostgresDriverFromSQLDBInstance(db)
 
-	mock.ExpectExec("UPDATE loadbalancers").WithArgs("rochy", "60e85042bf95f5003559b791", sqlmock.AnyArg(),
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs("rochy", sqlmock.AnyArg(),
 		"60ddc61b6e29c3003378361D").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
-		Name:   "rochy",
-		UserID: "60e85042bf95f5003559b791",
+		Name: "rochy",
 	})
 	c.NoError(err)
 
-	mock.ExpectExec("UPDATE loadbalancers").WithArgs("rochy", "60e85042bf95f5003559b791", sqlmock.AnyArg(),
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs("rochy", sqlmock.AnyArg(),
 		"60ddc61b6e29c3003378361D").
 		WillReturnError(errors.New("dummy error"))
 
 	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
-		Name:   "rochy",
-		UserID: "60e85042bf95f5003559b791",
+		Name: "rochy",
 	})
 	c.EqualError(err, "dummy error")
 
@@ -153,13 +151,13 @@ func TestPostgresDriver_RemoveLoadBalancer(t *testing.T) {
 
 	driver := NewPostgresDriverFromSQLDBInstance(db)
 
-	mock.ExpectExec("UPDATE loadbalancers").WithArgs("", "60ddc61b6e29c3003378361D").
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs(sqlmock.AnyArg(), "60ddc61b6e29c3003378361D").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = driver.RemoveLoadBalancer("60ddc61b6e29c3003378361D")
 	c.NoError(err)
 
-	mock.ExpectExec("UPDATE loadbalancers").WithArgs("", "60ddc61b6e29c3003378361D").
+	mock.ExpectExec("UPDATE loadbalancers").WithArgs(sqlmock.AnyArg(), "not-an-id").
 		WillReturnError(errors.New("dummy error"))
 
 	err = driver.RemoveLoadBalancer("not-an-id")

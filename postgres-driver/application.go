@@ -60,7 +60,7 @@ const (
 	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), user_id = COALESCE($3, user_id), updated_at = $4
+	SET name = COALESCE($1, name), status = COALESCE($2, status), updated_at = $4
 	WHERE application_id = $5`
 	removeApplication = `
 	UPDATE applications
@@ -68,7 +68,7 @@ const (
 	WHERE application_id = $3`
 	updateGatewaySettings = `
 	UPDATE gateway_settings
-	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents
+	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents, whitelist_blockchains = :whitelist_blockchains
 	WHERE application_id = :application_id`
 )
 
@@ -337,13 +337,14 @@ func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySet
 		app.GatewaySettings.WhitelistMethods)
 
 	return &insertGatewaySettings{
-		ApplicationID:       app.ID,
-		SecretKey:           newSQLNullString(app.GatewaySettings.SecretKey),
-		SecretKeyRequired:   app.GatewaySettings.SecretKeyRequired,
-		WhitelistContracts:  newSQLNullString(marshaledWhitelistContracts),
-		WhitelistMethods:    newSQLNullString(marshaledWhitelistMethods),
-		WhitelistOrigins:    app.GatewaySettings.WhitelistOrigins,
-		WhitelistUserAgents: app.GatewaySettings.WhitelistUserAgents,
+		ApplicationID:        app.ID,
+		SecretKey:            newSQLNullString(app.GatewaySettings.SecretKey),
+		SecretKeyRequired:    app.GatewaySettings.SecretKeyRequired,
+		WhitelistContracts:   newSQLNullString(marshaledWhitelistContracts),
+		WhitelistMethods:     newSQLNullString(marshaledWhitelistMethods),
+		WhitelistOrigins:     app.GatewaySettings.WhitelistOrigins,
+		WhitelistUserAgents:  app.GatewaySettings.WhitelistUserAgents,
+		WhitelistBlockchains: app.GatewaySettings.WhitelistBlockchains,
 	}
 }
 
@@ -565,7 +566,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)), newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)), time.Now(), id)
 	if err != nil {
 		return err
 	}
@@ -584,15 +585,10 @@ func (d *PostgresDriver) RemoveApplication(id string) error {
 		return ErrMissingID
 	}
 
-	tx, err := d.Beginx()
+	_, err := d.Exec(removeApplication, newSQLNullString(string(repository.AwaitingGracePeriod)), time.Now(), id)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(removeApplication, newSQLNullString(string(repository.AwaitingGracePeriod)), time.Now(), id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return nil
 }
