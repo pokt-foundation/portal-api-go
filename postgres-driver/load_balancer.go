@@ -29,8 +29,8 @@ const (
 	WHERE lb_id = $3`
 	removeLoadBalancer = `
 	UPDATE loadbalancers
-	SET user_id = COALESCE($1, user_id), updated_at = $2
-	WHERE lb_id = $3`
+	SET user_id = '', updated_at = $1
+	WHERE lb_id = $2`
 )
 
 type dbLoadBalancer struct {
@@ -207,7 +207,7 @@ func (d *PostgresDriver) RemoveLoadBalancer(id string) error {
 		return ErrMissingID
 	}
 
-	_, err := d.Exec(removeLoadBalancer, newSQLNullString(""), time.Now(), id)
+	_, err := d.Exec(removeLoadBalancer, time.Now(), id)
 	if err != nil {
 		return err
 	}
