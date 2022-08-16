@@ -60,8 +60,8 @@ const (
 	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), user_id = COALESCE($2, user_id), updated_at = $3
-	WHERE application_id = $4`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), user_id = COALESCE($3, user_id), updated_at = $4
+	WHERE application_id = $5`
 	removeApplication = `
 	UPDATE applications
 	SET status = COALESCE($1, status), updated_at = $2
@@ -565,7 +565,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)), newSQLNullString(fieldsToUpdate.UserID), time.Now(), id)
 	if err != nil {
 		return err
 	}
@@ -589,7 +589,7 @@ func (d *PostgresDriver) RemoveApplication(id string) error {
 		return err
 	}
 
-	_, err = tx.Exec(removeApplication, newSQLNullString("AWAITING_GRACE_PERIOD"), time.Now(), id)
+	_, err = tx.Exec(removeApplication, newSQLNullString(string(repository.AwaitingGracePeriod)), time.Now(), id)
 	if err != nil {
 		return err
 	}
