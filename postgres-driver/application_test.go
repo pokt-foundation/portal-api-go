@@ -216,6 +216,16 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectQuery("^SELECT (.+) FROM app_limits (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "daily_limit"}).
+		AddRow("5f62b7d8be3591c4dea85661", 0))
+
+	mock.ExpectExec("UPDATE app_limits").WithArgs(250000, "60e85042bf95f5003559b791").WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "signed_up", "on_quarter", "on_half", "on_three_quarters", "on_full"}).
+		AddRow("5f62b7d8be3591c4dea85661", false, false, false, false, false))
+
+	mock.ExpectExec("UPDATE notification_settings").WithArgs(true, true, true, true, true, "60e85042bf95f5003559b791").WillReturnResult(sqlmock.NewResult(1, 1))
+
 	mock.ExpectCommit()
 
 	settingsToSend := &repository.GatewaySettings{
@@ -238,10 +248,24 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		WhitelistBlockchains: []string{"0021"},
 	}
 
+	limitsToSend := &repository.AppLimits{
+		DailyLimit: 250000,
+	}
+
+	notificationToSend := &repository.NotificationSettings{
+		SignedUp:      true,
+		Quarter:       true,
+		Half:          true,
+		ThreeQuarters: true,
+		Full:          true,
+	}
+
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
-		Name:            "pablo",
-		Status:          repository.Orphaned,
-		GatewaySettings: settingsToSend,
+		Name:                 "pablo",
+		Status:               repository.Orphaned,
+		GatewaySettings:      settingsToSend,
+		AppLimits:            limitsToSend,
+		NotificationSettings: notificationToSend,
 	})
 	c.NoError(err)
 
@@ -257,12 +281,35 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectQuery("^SELECT (.+) FROM app_limits (.+)").WillReturnRows(sqlmock.NewRows(nil))
+
+	mock.ExpectExec("INSERT into app_limits").WithArgs("60e85042bf95f5003559b791", 250000).WillReturnResult(sqlmock.NewResult(1, 1))
+
 	mock.ExpectCommit()
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		GatewaySettings: settingsToSend,
+		AppLimits:       limitsToSend,
+	})
+	c.NoError(err)
+
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
+
+	mock.ExpectExec("INSERT into notification_settings").WithArgs("60e85042bf95f5003559b791", true, true, true, true, true).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectCommit()
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+		Name:                 "pablo",
+		Status:               repository.Orphaned,
+		NotificationSettings: notificationToSend,
 	})
 	c.NoError(err)
 
@@ -288,6 +335,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		GatewaySettings: settingsToSend,
+		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in applications")
 
@@ -302,6 +350,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		GatewaySettings: settingsToSend,
+		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error reading gateway_settings")
 
@@ -324,6 +373,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		GatewaySettings: settingsToSend,
+		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in settings")
 
@@ -343,6 +393,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		GatewaySettings: settingsToSend,
+		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in inserting settings")
 
