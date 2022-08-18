@@ -29,6 +29,7 @@ type Application struct {
 	URL                        string                     `json:"url"`
 	Dummy                      bool                       `json:"dummy"`
 	FreeTier                   bool                       `json:"freeTier"`
+	PayPlanType                PayPlanType                `json:"payPlanType,omitempty"`
 	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
 	GatewayAAT                 GatewayAAT                 `json:"gatewayAAT"`
@@ -79,19 +80,39 @@ var (
 	}
 )
 
+type PayPlanType string
+
+const (
+	FreetierV0   PayPlanType = "FREETIER_V0"
+	PayAsYouGoV0 PayPlanType = "PAY_AS_YOU_GO_V0"
+)
+
+var (
+	ValidPayPlanTypes = map[PayPlanType]bool{
+		FreetierV0:   true,
+		PayAsYouGoV0: true,
+	}
+)
+
 type AppLimits struct {
-	AppID      string `json:"appID,omitempty"`
-	PublicKey  string `json:"publicKey,omitempty"`
-	DailyLimit int    `json:"dailyLimit"`
+	AppID      string      `json:"appID,omitempty"`
+	PublicKey  string      `json:"publicKey,omitempty"`
+	PlanType   PayPlanType `json:"planType"`
+	DailyLimit int         `json:"dailyLimit"`
+}
+
+type PayPlan struct {
+	PlanType   PayPlanType `json:"planType"`
+	DailyLimit int         `json:"dailyLimit"`
 }
 
 // UpdateApplication struct holding possible fields to update
 type UpdateApplication struct {
 	Name                 string                `json:"name,omitempty"`
 	Status               AppStatus             `json:"status,omitempty"`
+	PayPlanType          PayPlanType           `json:"payPlanType,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
-	AppLimits            *AppLimits            `json:"appLimits,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`
 }
 

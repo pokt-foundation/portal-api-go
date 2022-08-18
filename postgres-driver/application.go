@@ -14,14 +14,13 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, 
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
 	fa.public_key AS fa_public_key, fa.signature AS fa_signature, fa.client_public_key AS fa_client_public_key, fa.version AS fa_version, 
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
-	al.daily_limit
+	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
 	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
@@ -29,20 +28,16 @@ const (
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
-	LEFT JOIN app_limits AS al ON a.application_id=al.application_id
 	`
 	selectGatewaySettings = `
 	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
 	FROM gateway_settings WHERE application_id = $1`
-	selectAppLimits = `
-	SELECT application_id, daily_limit
-	FROM app_limits WHERE application_id = $1`
 	selectNotificationSettings = `
 	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
 	FROM notification_settings WHERE application_id = $1`
 	insertApplicationScript = `
-	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, created_at, updated_at)
-	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :created_at, :updated_at)`
+	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, created_at, updated_at)
+	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :created_at, :updated_at)`
 	insertFreeTierAATScript = `
 	INSERT into freetier_aat (application_id, public_key, signature, client_public_key, version)
 	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
@@ -61,13 +56,10 @@ const (
 	insertNotificationSettingsScript = `
 	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
-	insertAppLimitsScript = `
-	INSERT into app_limits (application_id, daily_limit)
-	VALUES (:application_id, :daily_limit)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), updated_at = $3
-	WHERE application_id = $4`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), updated_at = $4
+	WHERE application_id = $5`
 	removeApplication = `
 	UPDATE applications
 	SET status = COALESCE($1, status), updated_at = $2
@@ -76,10 +68,6 @@ const (
 	UPDATE gateway_settings
 	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents, whitelist_blockchains = :whitelist_blockchains
 	WHERE application_id = :application_id`
-	updateAppLimits = `
-	UPDATE app_limits
-	SET daily_limit = :daily_limit
-	WHERE application_id = :application_id`
 	updateNotificationSettings = `
 	UPDATE notification_settings
 	SET signed_up = :signed_up, on_quarter = :on_quarter, on_half = :on_half, on_three_quarters = :on_three_quarters, on_full = :on_full
@@ -87,7 +75,8 @@ const (
 )
 
 var (
-	ErrInvalidAppStatus = errors.New("invalid app status")
+	ErrInvalidAppStatus   = errors.New("invalid app status")
+	ErrInvalidPayPlanType = errors.New("invalid pay plan type")
 )
 
 type dbApplication struct {
@@ -114,6 +103,7 @@ type dbApplication struct {
 	PAAdress             sql.NullString `db:"pa_address"`
 	SecretKey            sql.NullString `db:"secret_key"`
 	URL                  sql.NullString `db:"url"`
+	PayPlanType          sql.NullString `db:"pay_plan_type"`
 	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
 	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
@@ -127,7 +117,6 @@ type dbApplication struct {
 	Half                 sql.NullBool   `db:"on_half"`
 	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
 	Full                 sql.NullBool   `db:"on_full"`
-	DailyLimit           sql.NullInt64  `db:"daily_limit"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
@@ -142,6 +131,7 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Description:  a.Description.String,
 		Owner:        a.Owner.String,
 		URL:          a.URL.String,
+		PayPlanType:  repository.PayPlanType(a.PayPlanType.String),
 		Dummy:        a.Dummy.Bool,
 		FreeTier:     a.FreeTier.Bool,
 		CreatedAt:    a.CreatedAt.Time,
@@ -184,9 +174,6 @@ func (a *dbApplication) toApplication() *repository.Application {
 			PublicKey: a.PAPublicKey.String,
 			Address:   a.PAAdress.String,
 		},
-		Limits: repository.AppLimits{
-			DailyLimit: int(a.DailyLimit.Int64),
-		},
 	}
 }
 
@@ -198,6 +185,7 @@ type insertDBApp struct {
 	Description   sql.NullString `db:"description"`
 	Owner         sql.NullString `db:"owner"`
 	URL           sql.NullString `db:"url"`
+	PayPlanType   string         `db:"pay_plan_type"`
 	CreatedAt     time.Time      `db:"created_at"`
 	UpdatedAt     time.Time      `db:"updated_at"`
 }
@@ -211,6 +199,7 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 		Description:   newSQLNullString(app.Description),
 		Owner:         newSQLNullString(app.Owner),
 		URL:           newSQLNullString(app.URL),
+		PayPlanType:   string(app.PayPlanType),
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
 	}
@@ -471,48 +460,6 @@ func convertRepositoryToDBNotificationSettings(id string, settings *repository.N
 	}
 }
 
-type insertAppLimits struct {
-	ApplicationID string        `db:"application_id"`
-	DailyLimit    sql.NullInt64 `db:"daily_limit"`
-}
-
-func (i *insertAppLimits) isNotNull() bool {
-	return i.DailyLimit.Valid
-}
-
-func (i *insertAppLimits) isUpdatable() bool {
-	return i != nil
-}
-
-func (i *insertAppLimits) read(appID string, driver *PostgresDriver) (updatable, error) {
-	var limits insertAppLimits
-
-	err := driver.Get(&limits, selectAppLimits, appID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &limits, nil
-}
-
-func extractInsertAppLimits(app *repository.Application) *insertAppLimits {
-	return &insertAppLimits{
-		ApplicationID: app.ID,
-		DailyLimit:    newSQLNullInt64(int64(app.Limits.DailyLimit)),
-	}
-}
-
-func convertRepositoryToDBAppLimits(id string, limits *repository.AppLimits) *insertAppLimits {
-	if limits == nil {
-		return nil
-	}
-
-	return &insertAppLimits{
-		ApplicationID: id,
-		DailyLimit:    newSQLNullInt64(int64(limits.DailyLimit)),
-	}
-}
-
 // ReadApplications returns all applications on the database
 func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	var dbApplications []*dbApplication
@@ -539,6 +486,10 @@ type nullable interface {
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
 	if !repository.ValidAppStatuses[app.Status] {
 		return nil, ErrInvalidAppStatus
+	}
+
+	if !repository.ValidPayPlanTypes[app.PayPlanType] {
+		return nil, ErrInvalidPayPlanType
 	}
 
 	id, err := generateRandomID()
@@ -572,9 +523,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	nullables = append(nullables, extractInsertNotificationSettings(app))
 	nullablesScripts = append(nullablesScripts, insertNotificationSettingsScript)
-
-	nullables = append(nullables, extractInsertAppLimits(app))
-	nullablesScripts = append(nullablesScripts, insertAppLimitsScript)
 
 	tx, err := d.Beginx()
 	if err != nil {
@@ -650,12 +598,17 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return ErrInvalidAppStatus
 	}
 
+	if fieldsToUpdate.PayPlanType != "" && !repository.ValidPayPlanTypes[fieldsToUpdate.PayPlanType] {
+		return ErrInvalidPayPlanType
+	}
+
 	tx, err := d.Beginx()
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)), time.Now(), id)
+	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)),
+		newSQLNullString(string(fieldsToUpdate.PayPlanType)), time.Now(), id)
 	if err != nil {
 		return err
 	}
@@ -666,12 +619,6 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		insertScript: insertGatewaySettingsScript,
 		updateScript: updateGatewaySettings,
 		toUpdate:     convertRepositoryToDBGatewaySettings(id, fieldsToUpdate.GatewaySettings),
-	})
-
-	updates = append(updates, &update{
-		insertScript: insertAppLimitsScript,
-		updateScript: updateAppLimits,
-		toUpdate:     convertRepositoryToDBAppLimits(id, fieldsToUpdate.AppLimits),
 	})
 
 	updates = append(updates, &update{
