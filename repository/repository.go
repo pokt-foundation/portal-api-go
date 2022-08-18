@@ -95,10 +95,13 @@ var (
 )
 
 type AppLimits struct {
-	AppID      string      `json:"appID,omitempty"`
-	PublicKey  string      `json:"publicKey,omitempty"`
-	PlanType   PayPlanType `json:"planType"`
-	DailyLimit int         `json:"dailyLimit"`
+	AppID                string                `json:"appID,omitempty"`
+	AppName              string                `json:"appName,omitempty"`
+	AppUserID            string                `json:"appUserID,omitempty"`
+	PublicKey            string                `json:"publicKey,omitempty"`
+	PlanType             PayPlanType           `json:"planType"`
+	DailyLimit           int                   `json:"dailyLimit"`
+	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 }
 
 type PayPlan struct {
