@@ -55,7 +55,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into freetier_aat").WithArgs(sqlmock.AnyArg(),
@@ -88,9 +88,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		true, true, true, true, true).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT into app_limits").WithArgs(sqlmock.AnyArg(), 1000000).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
 	mock.ExpectCommit()
 
 	appToSend := &repository.Application{
@@ -101,6 +98,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		Description:  "a life",
 		Owner:        "juancito",
 		URL:          "app.com",
+		PayPlanType:  repository.FreetierV0,
 		FreeTierAAT: repository.FreeTierAAT{
 			ApplicationPublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
@@ -149,9 +147,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 			ThreeQuarters: true,
 			Full:          true,
 		},
-		Limits: repository.AppLimits{
-			DailyLimit: 1000000,
-		},
 	}
 
 	app, err := driver.WriteApplication(appToSend)
@@ -161,7 +156,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in applications"))
 
 	app, err = driver.WriteApplication(appToSend)
@@ -171,7 +166,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into freetier_aat").WithArgs(sqlmock.AnyArg(),
@@ -189,6 +184,13 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	app, err = driver.WriteApplication(appToSend)
 	c.Equal(ErrInvalidAppStatus, err)
 	c.Empty(app)
+
+	appToSend.Status = repository.Orphaned
+	appToSend.PayPlanType = "wrong"
+
+	app, err = driver.WriteApplication(appToSend)
+	c.Equal(ErrInvalidPayPlanType, err)
+	c.Empty(app)
 }
 
 func TestPostgresDriver_UpdateApplication(t *testing.T) {
@@ -203,7 +205,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
@@ -215,11 +217,6 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	mock.ExpectQuery("^SELECT (.+) FROM app_limits (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "daily_limit"}).
-		AddRow("5f62b7d8be3591c4dea85661", 0))
-
-	mock.ExpectExec("UPDATE app_limits").WithArgs(250000, "60e85042bf95f5003559b791").WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "signed_up", "on_quarter", "on_half", "on_three_quarters", "on_full"}).
 		AddRow("5f62b7d8be3591c4dea85661", false, false, false, false, false))
@@ -248,10 +245,6 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		WhitelistBlockchains: []string{"0021"},
 	}
 
-	limitsToSend := &repository.AppLimits{
-		DailyLimit: 250000,
-	}
-
 	notificationToSend := &repository.NotificationSettings{
 		SignedUp:      true,
 		Quarter:       true,
@@ -263,15 +256,15 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:                 "pablo",
 		Status:               repository.Orphaned,
+		PayPlanType:          repository.PayAsYouGoV0,
 		GatewaySettings:      settingsToSend,
-		AppLimits:            limitsToSend,
 		NotificationSettings: notificationToSend,
 	})
 	c.NoError(err)
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
@@ -281,23 +274,19 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectQuery("^SELECT (.+) FROM app_limits (.+)").WillReturnRows(sqlmock.NewRows(nil))
-
-	mock.ExpectExec("INSERT into app_limits").WithArgs("60e85042bf95f5003559b791", 250000).WillReturnResult(sqlmock.NewResult(1, 1))
-
 	mock.ExpectCommit()
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
+		PayPlanType:     repository.PayAsYouGoV0,
 		GatewaySettings: settingsToSend,
-		AppLimits:       limitsToSend,
 	})
 	c.NoError(err)
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
@@ -309,39 +298,41 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:                 "pablo",
 		Status:               repository.Orphaned,
+		PayPlanType:          repository.PayAsYouGoV0,
 		NotificationSettings: notificationToSend,
 	})
 	c.NoError(err)
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectCommit()
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
-		Name:   "pablo",
-		Status: repository.Orphaned,
+		Name:        "pablo",
+		Status:      repository.Orphaned,
+		PayPlanType: repository.PayAsYouGoV0,
 	})
 	c.NoError(err)
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in applications"))
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
+		PayPlanType:     repository.PayAsYouGoV0,
 		GatewaySettings: settingsToSend,
-		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in applications")
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnError(errors.New("error reading gateway_settings"))
@@ -349,14 +340,14 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
+		PayPlanType:     repository.PayAsYouGoV0,
 		GatewaySettings: settingsToSend,
-		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error reading gateway_settings")
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
@@ -372,14 +363,14 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
+		PayPlanType:     repository.PayAsYouGoV0,
 		GatewaySettings: settingsToSend,
-		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in settings")
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
@@ -392,8 +383,8 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
+		PayPlanType:     repository.PayAsYouGoV0,
 		GatewaySettings: settingsToSend,
-		AppLimits:       limitsToSend,
 	})
 	c.EqualError(err, "error in inserting settings")
 
@@ -407,6 +398,12 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Status: "wrong",
 	})
 	c.Equal(ErrInvalidAppStatus, err)
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+		Status:      repository.Orphaned,
+		PayPlanType: "wrong",
+	})
+	c.Equal(ErrInvalidPayPlanType, err)
 }
 
 func TestPostgresDriver_RemoveApplication(t *testing.T) {
