@@ -89,6 +89,7 @@ const (
 
 var (
 	ValidPayPlanTypes = map[PayPlanType]bool{
+		"":           true, // needs to be allowed while the change for all apps to have plans is done
 		FreetierV0:   true,
 		PayAsYouGoV0: true,
 	}
