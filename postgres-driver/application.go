@@ -185,7 +185,7 @@ type insertDBApp struct {
 	Description   sql.NullString `db:"description"`
 	Owner         sql.NullString `db:"owner"`
 	URL           sql.NullString `db:"url"`
-	PayPlanType   string         `db:"pay_plan_type"`
+	PayPlanType   sql.NullString `db:"pay_plan_type"`
 	CreatedAt     time.Time      `db:"created_at"`
 	UpdatedAt     time.Time      `db:"updated_at"`
 }
@@ -199,7 +199,7 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 		Description:   newSQLNullString(app.Description),
 		Owner:         newSQLNullString(app.Owner),
 		URL:           newSQLNullString(app.URL),
-		PayPlanType:   string(app.PayPlanType),
+		PayPlanType:   newSQLNullString(string(app.PayPlanType)),
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
 	}
@@ -598,7 +598,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return ErrInvalidAppStatus
 	}
 
-	if fieldsToUpdate.PayPlanType != "" && !repository.ValidPayPlanTypes[fieldsToUpdate.PayPlanType] {
+	if !repository.ValidPayPlanTypes[fieldsToUpdate.PayPlanType] {
 		return ErrInvalidPayPlanType
 	}
 
