@@ -22,15 +22,13 @@ type Application struct {
 	ID                         string                     `json:"id"`
 	UserID                     string                     `json:"userID"`
 	Name                       string                     `json:"name"`
-	Status                     AppStatus                  `json:"status"`
 	ContactEmail               string                     `json:"contactEmail"`
 	Description                string                     `json:"description"`
 	Owner                      string                     `json:"owner"`
 	URL                        string                     `json:"url"`
+	Status                     AppStatus                  `json:"status"`
 	Dummy                      bool                       `json:"dummy"`
-	FreeTier                   bool                       `json:"freeTier"`
 	PayPlanType                PayPlanType                `json:"payPlanType,omitempty"`
-	FreeTierAAT                FreeTierAAT                `json:"freeTierAAT"`
 	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
 	GatewayAAT                 GatewayAAT                 `json:"gatewayAAT"`
 	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
@@ -122,13 +120,6 @@ type UpdateApplication struct {
 	Remove               bool                  `json:"remove,omitempty"`
 }
 
-type FreeTierAAT struct {
-	Version              string `json:"version"`
-	ClientPublicKey      string `json:"clientPublicKey"`
-	ApplicationPublicKey string `json:"applicationPublicKey"`
-	ApplicationSignature string `json:"applicationSignature"`
-}
-
 type FreeTierApplicationAccount struct {
 	Address   string `json:"address"`
 	PublicKey string `json:"publicKey"`
@@ -200,7 +191,6 @@ type Blockchain struct {
 	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
 }
 
-// TODO - Figure out how to handle Redirects field in Postgres
 type Redirects struct {
 	Alias          string `json:"alias"`
 	Domain         string `json:"domain"`

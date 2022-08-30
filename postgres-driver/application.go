@@ -15,20 +15,17 @@ import (
 const (
 	selectApplications = `
 	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
-	fa.public_key AS fa_public_key, fa.signature AS fa_signature, fa.client_public_key AS fa_client_public_key, fa.version AS fa_version, 
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
 	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
-	LEFT JOIN freetier_aat AS fa ON a.application_id=fa.application_id
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
 	LEFT JOIN freetier_app_account AS fac ON a.application_id=fac.application_id
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
-	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
-	`
+	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id`
 	selectGatewaySettings = `
 	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
 	FROM gateway_settings WHERE application_id = $1`
@@ -38,9 +35,6 @@ const (
 	insertApplicationScript = `
 	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, created_at, updated_at)
 	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :created_at, :updated_at)`
-	insertFreeTierAATScript = `
-	INSERT into freetier_aat (application_id, public_key, signature, client_public_key, version)
-	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
 	insertGatewayAATScript = `
 	INSERT into gateway_aat (application_id, public_key, signature, client_public_key, version)
 	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
@@ -86,10 +80,6 @@ type dbApplication struct {
 	Status               sql.NullString `db:"status"`
 	ContactEmail         sql.NullString `db:"contact_email"`
 	Description          sql.NullString `db:"description"`
-	FAPublicKey          sql.NullString `db:"fa_public_key"`
-	FASignature          sql.NullString `db:"fa_signature"`
-	FAClientPublicKey    sql.NullString `db:"fa_client_public_key"`
-	FAVersion            sql.NullString `db:"fa_version"`
 	FACPublicKey         sql.NullString `db:"fac_public_key"`
 	FACAddress           sql.NullString `db:"fac_address"`
 	FACPrivateKey        sql.NullString `db:"fac_private_key"`
@@ -110,7 +100,6 @@ type dbApplication struct {
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
 	Dummy                sql.NullBool   `db:"dummy"`
-	FreeTier             sql.NullBool   `db:"free_tier"`
 	SecretKeyRequired    sql.NullBool   `db:"secret_key_required"`
 	SignedUp             sql.NullBool   `db:"signed_up"`
 	Quarter              sql.NullBool   `db:"on_quarter"`
@@ -133,15 +122,8 @@ func (a *dbApplication) toApplication() *repository.Application {
 		URL:          a.URL.String,
 		PayPlanType:  repository.PayPlanType(a.PayPlanType.String),
 		Dummy:        a.Dummy.Bool,
-		FreeTier:     a.FreeTier.Bool,
 		CreatedAt:    a.CreatedAt.Time,
 		UpdatedAt:    a.UpdatedAt.Time,
-		FreeTierAAT: repository.FreeTierAAT{
-			ApplicationPublicKey: a.FAPublicKey.String,
-			ApplicationSignature: a.FASignature.String,
-			ClientPublicKey:      a.FAClientPublicKey.String,
-			Version:              a.FAVersion.String,
-		},
 		FreeTierApplicationAccount: repository.FreeTierApplicationAccount{
 			Address:    a.FACAddress.String,
 			PublicKey:  a.FACPublicKey.String,
@@ -202,28 +184,6 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 		PayPlanType:   newSQLNullString(string(app.PayPlanType)),
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
-	}
-}
-
-type insertFreeTierAAT struct {
-	ApplicationID   string         `db:"application_id"`
-	PublicKey       sql.NullString `db:"public_key"`
-	Signature       sql.NullString `db:"signature"`
-	ClientPublicKey sql.NullString `db:"client_public_key"`
-	Version         sql.NullString `db:"version"`
-}
-
-func (i *insertFreeTierAAT) isNotNull() bool {
-	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
-}
-
-func extractInsertFreeTierAAT(app *repository.Application) *insertFreeTierAAT {
-	return &insertFreeTierAAT{
-		ApplicationID:   app.ID,
-		PublicKey:       newSQLNullString(app.FreeTierAAT.ApplicationPublicKey),
-		Signature:       newSQLNullString(app.FreeTierAAT.ApplicationSignature),
-		ClientPublicKey: newSQLNullString(app.FreeTierAAT.ClientPublicKey),
-		Version:         newSQLNullString(app.FreeTierAAT.Version),
 	}
 }
 
@@ -505,9 +465,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	nullables := []nullable{}
 	nullablesScripts := []string{}
-
-	nullables = append(nullables, extractInsertFreeTierAAT(app))
-	nullablesScripts = append(nullablesScripts, insertFreeTierAATScript)
 
 	nullables = append(nullables, extractInsertGatewayAAT(app))
 	nullablesScripts = append(nullablesScripts, insertGatewayAATScript)

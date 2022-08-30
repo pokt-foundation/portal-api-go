@@ -18,12 +18,10 @@ import (
 var (
 	app1 repository.Application = repository.Application{
 		GatewayAAT: repository.GatewayAAT{
-			Version: "gwaat_version",
-		},
-		FreeTierAAT: repository.FreeTierAAT{
-			ClientPublicKey:      "free_aat_client_public_key",
-			ApplicationPublicKey: "free_aat_app_public_key",
-			ApplicationSignature: "free_aat_app_signature",
+			Version:              "gwaat_version",
+			ClientPublicKey:      "gwaat_client_public_key",
+			ApplicationPublicKey: "gwaat_app_public_key",
+			ApplicationSignature: "gwaat_app_signature",
 		},
 	}
 )
@@ -136,9 +134,7 @@ func TestRelayWithLb(t *testing.T) {
 			d := RelayDetails{
 				Application: &repository.Application{
 					GatewayAAT: repository.GatewayAAT{
-						Version: "gateway_version",
-					},
-					FreeTierAAT: repository.FreeTierAAT{
+						Version:              "gateway_version",
 						ClientPublicKey:      "client_public_key",
 						ApplicationPublicKey: "app_public_key",
 						ApplicationSignature: "app_signature",
