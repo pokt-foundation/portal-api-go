@@ -33,7 +33,7 @@ type dbBlockchain struct {
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
 	SyncAllowance     sql.NullInt32  `db:"sync_allowance"`
 	NodeCount         sql.NullInt32  `db:"node_count"`
-	Allowance         sql.NullInt32  `db:"active"`
+	Allowance         sql.NullInt32  `db:"allowance"`
 	Active            sql.NullBool   `db:"active"`
 }
 
