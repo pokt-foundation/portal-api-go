@@ -14,7 +14,7 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.free_tier, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
 	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
 	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
