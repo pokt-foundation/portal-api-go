@@ -58,12 +58,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT into freetier_aat").WithArgs(sqlmock.AnyArg(),
-		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
-		"1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
-		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77", "1").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
 		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 		"1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
@@ -99,12 +93,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		Owner:        "juancito",
 		URL:          "app.com",
 		PayPlanType:  repository.FreetierV0,
-		FreeTierAAT: repository.FreeTierAAT{
-			ApplicationPublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
-			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
-			ClientPublicKey:      "8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77",
-			Version:              "1",
-		},
 		GatewayAAT: repository.GatewayAAT{
 			ApplicationPublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
@@ -169,14 +157,14 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT into freetier_aat").WithArgs(sqlmock.AnyArg(),
+	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
 		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 		"1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
 		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77", "1").
-		WillReturnError(errors.New("error in freetier_aat"))
+		WillReturnError(errors.New("error in gateway_aat"))
 
 	app, err = driver.WriteApplication(appToSend)
-	c.EqualError(err, "error in freetier_aat")
+	c.EqualError(err, "error in gateway_aat")
 	c.Empty(app)
 
 	appToSend.Status = "wrong"
