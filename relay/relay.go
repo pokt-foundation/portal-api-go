@@ -218,9 +218,9 @@ func aatFromApp(app *repository.Application, aatPlan AatPlan) provider.PocketAAT
 	if aatPlan == AatPlanFreemium {
 		return provider.PocketAAT{
 			Version:      app.GatewayAAT.Version,
-			ClientPubKey: app.FreeTierAAT.ClientPublicKey,
-			AppPubKey:    app.FreeTierAAT.ApplicationPublicKey,
-			Signature:    app.FreeTierAAT.ApplicationSignature,
+			ClientPubKey: app.GatewayAAT.ClientPublicKey,
+			AppPubKey:    app.GatewayAAT.ApplicationPublicKey,
+			Signature:    app.GatewayAAT.ApplicationSignature,
 		}
 	}
 
