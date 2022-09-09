@@ -55,7 +55,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
@@ -93,6 +93,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		Owner:        "juancito",
 		URL:          "app.com",
 		PayPlanType:  repository.FreetierV0,
+		Status:       repository.Orphaned,
 		GatewayAAT: repository.GatewayAAT{
 			ApplicationPublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
@@ -144,7 +145,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in applications"))
 
 	app, err = driver.WriteApplication(appToSend)
@@ -154,7 +155,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),

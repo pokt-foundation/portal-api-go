@@ -33,8 +33,8 @@ const (
 	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
 	FROM notification_settings WHERE application_id = $1`
 	insertApplicationScript = `
-	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, created_at, updated_at)
-	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :created_at, :updated_at)`
+	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, status, created_at, updated_at)
+	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :status, :created_at, :updated_at)`
 	insertGatewayAATScript = `
 	INSERT into gateway_aat (application_id, public_key, signature, client_public_key, version)
 	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
@@ -168,6 +168,7 @@ type insertDBApp struct {
 	Owner         sql.NullString `db:"owner"`
 	URL           sql.NullString `db:"url"`
 	PayPlanType   sql.NullString `db:"pay_plan_type"`
+	Status        sql.NullString `db:"status"`
 	CreatedAt     time.Time      `db:"created_at"`
 	UpdatedAt     time.Time      `db:"updated_at"`
 }
@@ -182,6 +183,7 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 		Owner:         newSQLNullString(app.Owner),
 		URL:           newSQLNullString(app.URL),
 		PayPlanType:   newSQLNullString(string(app.PayPlanType)),
+		Status:        newSQLNullString(string(app.Status)),
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
 	}
