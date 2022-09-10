@@ -16,9 +16,9 @@ func TestPostgresDriver_ReadRedirects(t *testing.T) {
 
 	defer db.Close()
 
-	rows := sqlmock.NewRows([]string{"id", "blockchain_id", "alias", "loadbalancer", "domain"}).
-		AddRow(1, "0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network").
-		AddRow(2, "0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network")
+	rows := sqlmock.NewRows([]string{"blockchain_id", "alias", "loadbalancer", "domain"}).
+		AddRow("0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network").
+		AddRow("0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network")
 
 	mock.ExpectQuery("^SELECT (.+) FROM redirects$").WillReturnRows(rows)
 
