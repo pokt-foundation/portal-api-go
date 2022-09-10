@@ -7,11 +7,12 @@ import (
 )
 
 const (
-	selectRedirectsScript = "SELECT * FROM redirects"
+	selectRedirectsScript = `
+	SELECT blockchain_id, alias, loadbalancer, domain 
+	FROM redirects`
 )
 
 type dbRedirect struct {
-	ID             int            `db:"id"`
 	BlockchainID   string         `db:"blockchain_id"`
 	Alias          sql.NullString `db:"alias"`
 	LoadBalancerID sql.NullString `db:"loadbalancer"`

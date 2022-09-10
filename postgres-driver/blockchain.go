@@ -9,11 +9,13 @@ import (
 
 const (
 	selectBlockchainsScript = `SELECT b.id, b.blockchain_id, b.altruist, b.blockchain, b.blockchain_aliases, b.chain_id, b.chain_id_check, b.description, 
-	b.enforce_result, b._index, b.log_limit_blocks, b.network, b.network_id, b.node_count, b._path, b.request_timeOut, b.sync_allowance, b.ticker, b.active,
-	s.syncCheck as s_syncCheck, s.opts_allowance as s_opts_allowance, s.opts_body as s_opts_body, s.opts_path as s_opts_path, s.opts_result_key as s_opts_result_key
+	b._index, b.log_limit_blocks, b.network, b.network_id, b.node_count, b._path, b.request_timeOut, b.ticker, b.active,
+	s.synccheck as s_sync_check, s.opts_allowance as s_opts_allowance, s.opts_body as s_opts_body, s.opts_path as s_opts_path, s.opts_result_key as s_opts_result_key
 	FROM blockchains as b
 	LEFT JOIN sync_check_options AS s ON b.blockchain_id=s.blockchain_id`
 )
+
+// TO DO - Below fields may or may not need to be added back pending the meeting to discuss Postgres migration DB fields.
 
 type dbBlockchain struct {
 	ID                int            `db:"id"`
@@ -24,33 +26,33 @@ type dbBlockchain struct {
 	ChainID           sql.NullString `db:"chain_id"`
 	ChainIDCheck      sql.NullString `db:"chain_id_check"`
 	Description       sql.NullString `db:"description"`
-	EnforceResult     sql.NullString `db:"enforce_result"`
-	Index             sql.NullInt32  `db:"_index"`
-	LogLimitBlocks    sql.NullInt32  `db:"log_limit_blocks"`
-	Network           sql.NullString `db:"network"`
-	NetworkID         sql.NullString `db:"network_id"`
-	NodeCount         sql.NullInt32  `db:"node_count"`
-	ChainPath         sql.NullString `db:"_path"`
-	RequestTimeout    sql.NullInt32  `db:"request_timeOut"`
-	SyncAllowance     sql.NullInt32  `db:"sync_allowance"` // Add to Script (?)
-	Ticker            sql.NullString `db:"ticker"`
-	Active            sql.NullBool   `db:"active"` // Add to Script
-	SyncCheck         sql.NullString `db:"s_syncCheck"`
-	Allowance         sql.NullInt32  `db:"s_opts_allowance"`
-	Body              sql.NullString `db:"s_opts_body"`
-	Path              sql.NullString `db:"s_opts_path"`
-	ResultKey         sql.NullString `db:"s_opts_result_key"`
+	// EnforceResult     sql.NullString `db:"enforce_result"` // Add to Migration Script (?)
+	Index          sql.NullInt32  `db:"_index"`
+	LogLimitBlocks sql.NullInt32  `db:"log_limit_blocks"`
+	Network        sql.NullString `db:"network"`
+	NetworkID      sql.NullString `db:"network_id"`
+	NodeCount      sql.NullInt32  `db:"node_count"`
+	ChainPath      sql.NullString `db:"_path"`
+	RequestTimeout sql.NullInt32  `db:"request_timeout"`
+	// SyncAllowance  sql.NullInt32  `db:"sync_allowance"` // Add to Migration Script (?)
+	Ticker    sql.NullString `db:"ticker"`
+	Active    sql.NullBool   `db:"active"` // Add to Migration Script
+	SyncCheck sql.NullString `db:"s_sync_check"`
+	Allowance sql.NullInt32  `db:"s_opts_allowance"`
+	Body      sql.NullString `db:"s_opts_body"`
+	Path      sql.NullString `db:"s_opts_path"`
+	ResultKey sql.NullString `db:"s_opts_result_key"`
 }
 
 func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 	return &repository.Blockchain{
-		ID:                b.BlockchainID,
-		Altruist:          b.Altruist.String,
-		Blockchain:        b.Blockchain.String,
-		ChainID:           b.ChainID.String,
-		ChainIDCheck:      b.ChainIDCheck.String,
-		Description:       b.Description.String,
-		EnforceResult:     b.EnforceResult.String,
+		ID:           b.BlockchainID,
+		Altruist:     b.Altruist.String,
+		Blockchain:   b.Blockchain.String,
+		ChainID:      b.ChainID.String,
+		ChainIDCheck: b.ChainIDCheck.String,
+		Description:  b.Description.String,
+		// EnforceResult:     b.EnforceResult.String,
 		Network:           b.Network.String,
 		NetworkID:         b.NetworkID.String,
 		Path:              b.ChainPath.String,
@@ -60,8 +62,8 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 		Index:             int(b.Index.Int32),
 		LogLimitBlocks:    int(b.LogLimitBlocks.Int32),
 		RequestTimeout:    int(b.RequestTimeout.Int32),
-		SyncAllowance:     int(b.SyncAllowance.Int32),
-		Active:            b.Active.Bool,
+		// SyncAllowance:     int(b.SyncAllowance.Int32),
+		Active: b.Active.Bool,
 		SyncCheckOptions: repository.SyncCheckOptions{
 			Body:      b.Body.String,
 			ResultKey: b.ResultKey.String,
