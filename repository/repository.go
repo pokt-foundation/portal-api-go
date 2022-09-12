@@ -19,24 +19,23 @@ type Repository interface {
 
 // TODO: identify fields that should be stored encrypted in-memory
 type Application struct {
-	ID                         string                     `json:"id"`
-	UserID                     string                     `json:"userID"`
-	Name                       string                     `json:"name"`
-	ContactEmail               string                     `json:"contactEmail"`
-	Description                string                     `json:"description"`
-	Owner                      string                     `json:"owner"`
-	URL                        string                     `json:"url"`
-	Status                     AppStatus                  `json:"status"`
-	Dummy                      bool                       `json:"dummy"`
-	PayPlanType                PayPlanType                `json:"payPlanType,omitempty"`
-	FreeTierApplicationAccount FreeTierApplicationAccount `json:"freeTierApplicationAccount"`
-	GatewayAAT                 GatewayAAT                 `json:"gatewayAAT"`
-	GatewaySettings            GatewaySettings            `json:"gatewaySettings"`
-	NotificationSettings       NotificationSettings       `json:"notificationSettings"`
-	PublicPocketAccount        PublicPocketAccount        `json:"publicPocketAccount"`
-	Limits                     AppLimits                  `json:"limits"`
-	CreatedAt                  time.Time                  `json:"createdAt"`
-	UpdatedAt                  time.Time                  `json:"updatedAt"`
+	ID                   string               `json:"id"`
+	UserID               string               `json:"userID"`
+	Name                 string               `json:"name"`
+	ContactEmail         string               `json:"contactEmail"`
+	Description          string               `json:"description"`
+	Owner                string               `json:"owner"`
+	URL                  string               `json:"url"`
+	Status               AppStatus            `json:"status"`
+	Dummy                bool                 `json:"dummy"`
+	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
+	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
+	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
+	NotificationSettings NotificationSettings `json:"notificationSettings"`
+	PublicPocketAccount  PublicPocketAccount  `json:"publicPocketAccount"`
+	Limits               AppLimits            `json:"limits"`
+	CreatedAt            time.Time            `json:"createdAt"`
+	UpdatedAt            time.Time            `json:"updatedAt"`
 }
 
 type AppStatus string
@@ -120,15 +119,10 @@ type UpdateApplication struct {
 	Remove               bool                  `json:"remove,omitempty"`
 }
 
-type FreeTierApplicationAccount struct {
-	Address   string `json:"address"`
-	PublicKey string `json:"publicKey"`
-	// TODO: likely need to store an encrypted form in memory
-	PrivateKey string `json:"privateKey"`
-	Version    string `json:"version"`
-}
-
 type GatewayAAT struct {
+	Address              string `json:"address"`
+	PublicKey            string `json:"publicKey"`
+	PrivateKey           string `json:"privateKey"`
 	ApplicationPublicKey string `json:"applicationPublicKey"`
 	ApplicationSignature string `json:"applicationSignature"`
 	ClientPublicKey      string `json:"clientPublicKey"`
@@ -177,14 +171,12 @@ type Blockchain struct {
 	Description       string           `json:"description"`
 	EnforceResult     string           `json:"enforceResult"`
 	Network           string           `json:"network"`
-	NetworkID         string           `json:"networkID"`
 	Path              string           `json:"path"`
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
 	BlockchainAliases []string         `json:"blockchainAliases"`
-	RequestTimeout    int              `json:"requestTimeout"`
-	Index             int              `json:"index"`
 	LogLimitBlocks    int              `json:"logLimitBlocks"`
+	RequestTimeout    int              `json:"requestTimeout"`
 	SyncAllowance     int              `json:"syncAllowance"`
 	Active            bool             `json:"active"`
 	Redirects         []Redirect       `json:"redirects"`
@@ -206,8 +198,8 @@ type Redirect struct {
 type SyncCheckOptions struct {
 	BlockchainID string `json:"blockchainID"`
 	Body         string `json:"body"`
-	ResultKey    string `json:"resultKey"`
 	Path         string `json:"path"`
+	ResultKey    string `json:"resultKey"`
 	Allowance    int    `json:"allowance"`
 }
 
@@ -246,13 +238,10 @@ type UpdateLoadBalancer struct {
 }
 
 type StickyOptions struct {
-	Duration       string   `json:"duration"`
-	StickyOrigins  []string `json:"stickyOrigins"`
-	RelaysLimit    int      `json:"relaysLimit"`
-	RpcIDThreshold int
-	Stickiness     bool `json:"stickiness"`
-	StickinessTemp bool `json:"stickinessTemp"`
-	UseRPCID       bool `json:"useRPCID"`
+	Duration      string   `json:"duration"`
+	StickyOrigins []string `json:"stickyOrigins"`
+	StickyMax     int      `json:"stickyMax"`
+	Stickiness    bool     `json:"stickiness"`
 }
 
 func (s *StickyOptions) IsEmpty() bool {
