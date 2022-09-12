@@ -1,7 +1,6 @@
 package postgresdriver
 
 import (
-	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -59,14 +58,12 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
+		"f463b4dd88d865c22acbf38981b6c505bcc46c64",
+		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77",
+		sqlmock.AnyArg(),
 		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 		"1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
-		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77", "1").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	mock.ExpectExec("INSERT into freetier_app_account").WithArgs(sqlmock.AnyArg(),
-		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
-		"f463b4dd88d865c22acbf38981b6c505bcc46c64", sql.NullString{}, "1").
+		"1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into public_pocket_account").WithArgs(sqlmock.AnyArg(),
@@ -96,15 +93,11 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		Status:       repository.Orphaned,
 		GatewayAAT: repository.GatewayAAT{
 			ApplicationPublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
+			PrivateKey:           "",
+			Address:              "f463b4dd88d865c22acbf38981b6c505bcc46c64",
 			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
 			ClientPublicKey:      "8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77",
 			Version:              "1",
-		},
-		FreeTierApplicationAccount: repository.FreeTierApplicationAccount{
-			PublicKey:  "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
-			PrivateKey: "",
-			Address:    "f463b4dd88d865c22acbf38981b6c505bcc46c64",
-			Version:    "1",
 		},
 		PublicPocketAccount: repository.PublicPocketAccount{
 			PublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
@@ -159,9 +152,12 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
+		"f463b4dd88d865c22acbf38981b6c505bcc46c64",
+		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77",
+		sqlmock.AnyArg(),
 		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
 		"1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
-		"8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77", "1").
+		"1").
 		WillReturnError(errors.New("error in gateway_aat"))
 
 	app, err = driver.WriteApplication(appToSend)

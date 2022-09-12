@@ -60,6 +60,8 @@ func extractDBRedirect(redirect *repository.Redirect) *dbRedirect {
 		Alias:          newSQLNullString(redirect.Alias),
 		LoadBalancerID: newSQLNullString(redirect.LoadBalancerID),
 		Domain:         newSQLNullString(redirect.Domain),
+		CreatedAt:      redirect.CreatedAt,
+		UpdatedAt:      redirect.UpdatedAt,
 	}
 }
 

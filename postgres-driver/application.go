@@ -15,14 +15,12 @@ import (
 const (
 	selectApplications = `
 	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
-	ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.client_public_key AS ga_client_public_key, ga.version AS ga_version,
-	fac.public_key AS fac_public_key, fac.address AS fac_address, fac.private_key AS fac_private_key, fac.version AS fac_version,
+	ga.address AS ga_address,ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
 	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
-	LEFT JOIN freetier_app_account AS fac ON a.application_id=fac.application_id
 	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id`
@@ -36,11 +34,8 @@ const (
 	INSERT into applications (application_id, user_id, name, contact_email, description, owner, url, pay_plan_type, status, created_at, updated_at)
 	VALUES (:application_id, :user_id, :name, :contact_email, :description, :owner, :url, :pay_plan_type, :status, :created_at, :updated_at)`
 	insertGatewayAATScript = `
-	INSERT into gateway_aat (application_id, public_key, signature, client_public_key, version)
-	VALUES (:application_id, :public_key, :signature, :client_public_key, :version)`
-	insertFreeTierAppAccountScript = `
-	INSERT into freetier_app_account (application_id, public_key, address, private_key, version)
-	VALUES (:application_id, :public_key, :address, :private_key, :version)`
+	INSERT into gateway_aat (application_id, address, client_public_key, private_key, public_key, signature, version)
+	VALUES (:application_id, :address, :client_public_key, :private_key, :public_key, :signature, :version)`
 	insertPublicPocketAccountScript = `
 	INSERT into public_pocket_account (application_id, public_key, address)
 	VALUES (:application_id, :public_key, :address)`
@@ -80,13 +75,11 @@ type dbApplication struct {
 	Status               sql.NullString `db:"status"`
 	ContactEmail         sql.NullString `db:"contact_email"`
 	Description          sql.NullString `db:"description"`
-	FACPublicKey         sql.NullString `db:"fac_public_key"`
-	FACAddress           sql.NullString `db:"fac_address"`
-	FACPrivateKey        sql.NullString `db:"fac_private_key"`
-	FACVersion           sql.NullString `db:"fac_version"`
+	GAAddress            sql.NullString `db:"ga_address"`
+	GAClientPublicKey    sql.NullString `db:"ga_client_public_key"`
+	GAPrivateKey         sql.NullString `db:"ga_private_key"`
 	GAPublicKey          sql.NullString `db:"ga_public_key"`
 	GASignature          sql.NullString `db:"ga_signature"`
-	GAClientPublicKey    sql.NullString `db:"ga_client_public_key"`
 	GAVersion            sql.NullString `db:"ga_version"`
 	Owner                sql.NullString `db:"owner"`
 	PAPublicKey          sql.NullString `db:"pa_public_key"`
@@ -124,16 +117,12 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Dummy:        a.Dummy.Bool,
 		CreatedAt:    a.CreatedAt.Time,
 		UpdatedAt:    a.UpdatedAt.Time,
-		FreeTierApplicationAccount: repository.FreeTierApplicationAccount{
-			Address:    a.FACAddress.String,
-			PublicKey:  a.FACPublicKey.String,
-			PrivateKey: a.FACPrivateKey.String,
-			Version:    a.FACVersion.String,
-		},
 		GatewayAAT: repository.GatewayAAT{
+			Address:              a.GAAddress.String,
 			ApplicationPublicKey: a.GAPublicKey.String,
 			ApplicationSignature: a.GASignature.String,
 			ClientPublicKey:      a.GAClientPublicKey.String,
+			PrivateKey:           a.GAPrivateKey.String,
 			Version:              a.GAVersion.String,
 		},
 		GatewaySettings: repository.GatewaySettings{
@@ -191,9 +180,11 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 
 type insertGatewayAAT struct {
 	ApplicationID   string         `db:"application_id"`
+	Address         sql.NullString `db:"address"`
+	ClientPublicKey sql.NullString `db:"client_public_key"`
+	PrivateKey      sql.NullString `db:"private_key"`
 	PublicKey       sql.NullString `db:"public_key"`
 	Signature       sql.NullString `db:"signature"`
-	ClientPublicKey sql.NullString `db:"client_public_key"`
 	Version         sql.NullString `db:"version"`
 }
 
@@ -204,32 +195,12 @@ func (i *insertGatewayAAT) isNotNull() bool {
 func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
 	return &insertGatewayAAT{
 		ApplicationID:   app.ID,
+		Address:         newSQLNullString(app.GatewayAAT.Address),
+		ClientPublicKey: newSQLNullString(app.GatewayAAT.ClientPublicKey),
+		PrivateKey:      newSQLNullString(app.GatewayAAT.PrivateKey),
 		PublicKey:       newSQLNullString(app.GatewayAAT.ApplicationPublicKey),
 		Signature:       newSQLNullString(app.GatewayAAT.ApplicationSignature),
-		ClientPublicKey: newSQLNullString(app.GatewayAAT.ClientPublicKey),
 		Version:         newSQLNullString(app.GatewayAAT.Version),
-	}
-}
-
-type insertFreeTierAppAccount struct {
-	ApplicationID string         `db:"application_id"`
-	PublicKey     sql.NullString `db:"public_key"`
-	Address       sql.NullString `db:"address"`
-	PrivateKey    sql.NullString `db:"private_key"`
-	Version       sql.NullString `db:"version"`
-}
-
-func (i *insertFreeTierAppAccount) isNotNull() bool {
-	return i.PublicKey.Valid || i.Address.Valid || i.PrivateKey.Valid || i.Version.Valid
-}
-
-func extractInsertFreeTierAppAccount(app *repository.Application) *insertFreeTierAppAccount {
-	return &insertFreeTierAppAccount{
-		ApplicationID: app.ID,
-		PublicKey:     newSQLNullString(app.FreeTierApplicationAccount.PublicKey),
-		Address:       newSQLNullString(app.FreeTierApplicationAccount.Address),
-		PrivateKey:    newSQLNullString(app.FreeTierApplicationAccount.PrivateKey),
-		Version:       newSQLNullString(app.FreeTierApplicationAccount.Version),
 	}
 }
 
@@ -470,9 +441,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	nullables = append(nullables, extractInsertGatewayAAT(app))
 	nullablesScripts = append(nullablesScripts, insertGatewayAATScript)
-
-	nullables = append(nullables, extractInsertFreeTierAppAccount(app))
-	nullablesScripts = append(nullablesScripts, insertFreeTierAppAccountScript)
 
 	nullables = append(nullables, extractInsertPublicPocketAccount(app))
 	nullablesScripts = append(nullablesScripts, insertPublicPocketAccountScript)
