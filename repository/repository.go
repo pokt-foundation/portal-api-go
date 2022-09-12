@@ -182,9 +182,11 @@ type Blockchain struct {
 	SyncCheck         string           `json:"syncCheck"`
 	Ticker            string           `json:"ticker"`
 	BlockchainAliases []string         `json:"blockchainAliases"`
-	RequestTimeout    int              `json:"requestTimeout"`
+	AppCount          int              `json:"appCount"`
 	Index             int              `json:"index"`
 	LogLimitBlocks    int              `json:"logLimitBlocks"`
+	NodeCount         int              `json:"nodeCount"`
+	RequestTimeout    int              `json:"requestTimeout"`
 	SyncAllowance     int              `json:"syncAllowance"`
 	Active            bool             `json:"active"`
 	Redirects         []Redirect       `json:"redirects"`
@@ -206,8 +208,8 @@ type Redirect struct {
 type SyncCheckOptions struct {
 	BlockchainID string `json:"blockchainID"`
 	Body         string `json:"body"`
-	ResultKey    string `json:"resultKey"`
 	Path         string `json:"path"`
+	ResultKey    string `json:"resultKey"`
 	Allowance    int    `json:"allowance"`
 }
 
