@@ -25,8 +25,6 @@ const (
 	WHERE blockchain_id = :blockchain_id`
 )
 
-// TODO - app_count, enforce_result & active all need to be added to migration script
-
 type dbBlockchain struct {
 	BlockchainID      string         `db:"blockchain_id"`
 	Altruist          sql.NullString `db:"altruist"`
@@ -35,17 +33,17 @@ type dbBlockchain struct {
 	ChainIDCheck      sql.NullString `db:"chain_id_check"`
 	ChainPath         sql.NullString `db:"_path"`
 	Description       sql.NullString `db:"description"`
-	EnforceResult     sql.NullString `db:"enforce_result"` // TODO - Add to Migration Script
+	EnforceResult     sql.NullString `db:"enforce_result"`
 	Network           sql.NullString `db:"network"`
 	NetworkID         sql.NullString `db:"network_id"`
 	Ticker            sql.NullString `db:"ticker"`
 	BlockchainAliases pq.StringArray `db:"blockchain_aliases"`
-	AppCount          sql.NullInt32  `db:"app_count"` // TODO - Add to Migration Script
+	AppCount          sql.NullInt32  `db:"app_count"`
 	Index             sql.NullInt32  `db:"_index"`
 	LogLimitBlocks    sql.NullInt32  `db:"log_limit_blocks"`
 	NodeCount         sql.NullInt32  `db:"node_count"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
-	Active            sql.NullBool   `db:"active"` // TODO - Add to Migration Script
+	Active            sql.NullBool   `db:"active"`
 	SyncCheck         sql.NullString `db:"s_sync_check"`
 	Allowance         sql.NullInt32  `db:"s_opts_allowance"`
 	Body              sql.NullString `db:"s_opts_body"`
@@ -140,12 +138,12 @@ func extractInsertDBBlockchain(blockchain *repository.Blockchain) *insertDBBlock
 		NetworkID:         newSQLNullString(blockchain.NetworkID),
 		Ticker:            newSQLNullString(blockchain.Ticker),
 		BlockchainAliases: blockchain.BlockchainAliases,
-		AppCount:          newSQLNullInt32(int32(blockchain.AppCount)), // TODO - Add to Migration Script
+		AppCount:          newSQLNullInt32(int32(blockchain.AppCount)),
 		Index:             newSQLNullInt32(int32(blockchain.Index)),
 		LogLimitBlocks:    newSQLNullInt32(int32(blockchain.LogLimitBlocks)),
 		NodeCount:         newSQLNullInt32(int32(blockchain.NodeCount)),
 		RequestTimeout:    newSQLNullInt32(int32(blockchain.RequestTimeout)),
-		Active:            blockchain.Active, // TODO - Add to Migration Script
+		Active:            blockchain.Active,
 	}
 }
 
@@ -210,7 +208,7 @@ func (d *PostgresDriver) WriteBlockchain(blockchain *repository.Blockchain) (*re
 
 type activateDBBlockchain struct {
 	BlockchainID string    `db:"blockchain_id"`
-	Active       bool      `db:"active"` // TODO - Add to Migration Script
+	Active       bool      `db:"active"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
