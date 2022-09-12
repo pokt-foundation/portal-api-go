@@ -20,11 +20,11 @@ func TestPostgresDriver_ReadBlockchains(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.NewRows([]string{"blockchain_id", "altruist", "blockchain", "blockchain_aliases", "chain_id", "chain_id_check",
-		"description", "_index", "log_limit_blocks", "network", "network_id", "node_count", "_path", "request_timeout", "ticker"}).
+		"description", "log_limit_blocks", "network", "_path", "request_timeout", "ticker"}).
 		AddRow("0021", "https://dummy.com:18546", "eth-mainnet", pq.StringArray{"eth-mainnet"}, 21, sql.NullString{},
-			"Ethereum Mainnet", 21, 212121, "ETH-1", sql.NullString{}, 21, sql.NullString{}, sql.NullString{}, "ETH").
+			"Ethereum Mainnet", 212121, "ETH-1", sql.NullString{}, sql.NullString{}, "ETH").
 		AddRow("0021", "https://dummy.com:18546", "eth-mainnet", pq.StringArray{"eth-mainnet"}, 21, sql.NullString{},
-			"Ethereum Mainnet", 21, 212121, "ETH-1", sql.NullString{}, 21, sql.NullString{}, sql.NullString{}, "ETH")
+			"Ethereum Mainnet", 212121, "ETH-1", sql.NullString{}, sql.NullString{}, "ETH")
 
 	mock.ExpectQuery("^SELECT (.+) FROM blockchains (.+)").WillReturnRows(rows)
 
@@ -54,7 +54,7 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into blockchains").WithArgs(
-		"0062", true, "https://testaltruist.com", 6, "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 1, 10000, "ETH-34", "123", 5, "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"0062", true, "https://testaltruist.com", "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 10000, "ETH-34", "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into sync_check_options").WithArgs(
@@ -72,16 +72,12 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 		Description:       "Ethereum Mainnet",
 		EnforceResult:     "JSON",
 		Network:           "ETH-34",
-		NetworkID:         "123",
 		Path:              "/etc/",
 		SyncCheck:         "synccheck",
 		Ticker:            "ETH",
 		BlockchainAliases: []string{"ethereum-mainnet-high-gas"},
-		AppCount:          6,
 		RequestTimeout:    10,
-		Index:             1,
 		LogLimitBlocks:    10000,
-		NodeCount:         5,
 		Active:            true,
 		SyncCheckOptions: repository.SyncCheckOptions{
 			BlockchainID: "0062",
@@ -99,7 +95,7 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into blockchains").WithArgs(
-		"0062", true, "https://testaltruist.com", 6, "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 1, 10000, "ETH-34", "123", 5, "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"0062", true, "https://testaltruist.com", "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 10000, "ETH-34", "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in blockchains"))
 
 	blockchain, err = driver.WriteBlockchain(blockchainToSend)
@@ -109,7 +105,7 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into blockchains").WithArgs(
-		"0062", true, "https://testaltruist.com", 6, "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 1, 10000, "ETH-34", "123", 5, "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"0062", true, "https://testaltruist.com", "ethereum-mainnet", pq.StringArray([]string{"ethereum-mainnet-high-gas"}), "34", `{\""method\"":\""eth_chainId\"",\""id\"":1,\""jsonrpc\"":\""2.0\""`, "Ethereum Mainnet", "JSON", 10000, "ETH-34", "/etc/", 10, "ETH", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into sync_check_options").WithArgs(

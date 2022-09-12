@@ -9,16 +9,16 @@ import (
 )
 
 const (
-	selectBlockchainsScript = `SELECT b.blockchain_id, b.altruist, b.app_count, b.blockchain, b.blockchain_aliases, b.chain_id, b.chain_id_check, b.description, b.enforce_result, b._index, b.log_limit_blocks, b.network, b.network_id, b.node_count, b._path, b.request_timeout, b.ticker, b.active,
-	s.synccheck as s_sync_check, s.opts_allowance as s_opts_allowance, s.opts_body as s_opts_body, s.opts_path as s_opts_path, s.opts_result_key as s_opts_result_key
+	selectBlockchainsScript = `SELECT b.blockchain_id, b.altruist, b.blockchain, b.blockchain_aliases, b.chain_id, b.chain_id_check, b.description, b.enforce_result, b.log_limit_blocks, b.network, b._path, b.request_timeout, b.ticker, b.active,
+	s.synccheck as s_sync_check, s.allowance as s_allowance, s.body as s_body, s.path as s_path, s.result_key as s_result_key
 	FROM blockchains as b
 	LEFT JOIN sync_check_options AS s ON b.blockchain_id=s.blockchain_id`
 	insertBlockchainScript = `
-	INSERT into blockchains (blockchain_id, active, altruist, app_count, blockchain, blockchain_aliases, chain_id, chain_id_check, description, enforce_result, _index, log_limit_blocks, network, network_id, node_count, _path, request_timeout, ticker, created_at, updated_at)
-	VALUES (:blockchain_id, :active, :altruist, :app_count, :blockchain, :blockchain_aliases, :chain_id, :chain_id_check, :description, :enforce_result, :_index, :log_limit_blocks, :network, :network_id, :node_count, :_path, :request_timeout, :ticker, :created_at, :updated_at)`
+	INSERT into blockchains (blockchain_id, active, altruist, blockchain, blockchain_aliases, chain_id, chain_id_check, description, enforce_result, log_limit_blocks, network, _path, request_timeout, ticker, created_at, updated_at)
+	VALUES (:blockchain_id, :active, :altruist, :blockchain, :blockchain_aliases, :chain_id, :chain_id_check, :description, :enforce_result, :log_limit_blocks, :network, :_path, :request_timeout, :ticker, :created_at, :updated_at)`
 	insertSyncCheckOptionsScript = `
-	INSERT into sync_check_options (blockchain_id, synccheck, opts_allowance, opts_body, opts_path, opts_result_key)
-	VALUES (:blockchain_id, :synccheck, :opts_allowance, :opts_body, :opts_path, :opts_result_key)`
+	INSERT into sync_check_options (blockchain_id, synccheck, allowance, body, path, result_key)
+	VALUES (:blockchain_id, :synccheck, :allowance, :body, :path, :result_key)`
 	activateBlockchain = `
 	UPDATE blockchains
 	SET active = :active, updated_at = :updated_at
@@ -38,17 +38,14 @@ type dbBlockchain struct {
 	NetworkID         sql.NullString `db:"network_id"`
 	Ticker            sql.NullString `db:"ticker"`
 	BlockchainAliases pq.StringArray `db:"blockchain_aliases"`
-	AppCount          sql.NullInt32  `db:"app_count"`
-	Index             sql.NullInt32  `db:"_index"`
 	LogLimitBlocks    sql.NullInt32  `db:"log_limit_blocks"`
-	NodeCount         sql.NullInt32  `db:"node_count"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
 	Active            sql.NullBool   `db:"active"`
 	SyncCheck         sql.NullString `db:"s_sync_check"`
-	Allowance         sql.NullInt32  `db:"s_opts_allowance"`
-	Body              sql.NullString `db:"s_opts_body"`
-	Path              sql.NullString `db:"s_opts_path"`
-	ResultKey         sql.NullString `db:"s_opts_result_key"`
+	Allowance         sql.NullInt32  `db:"s_allowance"`
+	Body              sql.NullString `db:"s_body"`
+	Path              sql.NullString `db:"s_path"`
+	ResultKey         sql.NullString `db:"s_result_key"`
 	CreatedAt         time.Time      `db:"created_at"`
 	UpdatedAt         time.Time      `db:"updated_at"`
 }
@@ -63,15 +60,11 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 		Description:       b.Description.String,
 		EnforceResult:     b.EnforceResult.String,
 		Network:           b.Network.String,
-		NetworkID:         b.NetworkID.String,
 		Path:              b.ChainPath.String,
 		SyncCheck:         b.SyncCheck.String,
 		Ticker:            b.Ticker.String,
 		BlockchainAliases: b.BlockchainAliases,
-		AppCount:          int(b.AppCount.Int32),
-		Index:             int(b.Index.Int32),
 		LogLimitBlocks:    int(b.LogLimitBlocks.Int32),
-		NodeCount:         int(b.NodeCount.Int32),
 		RequestTimeout:    int(b.RequestTimeout.Int32),
 		Active:            b.Active.Bool,
 		SyncCheckOptions: repository.SyncCheckOptions{
@@ -93,13 +86,9 @@ type insertDBBlockchain struct {
 	Description       sql.NullString `db:"description"`
 	EnforceResult     sql.NullString `db:"enforce_result"`
 	Network           sql.NullString `db:"network"`
-	NetworkID         sql.NullString `db:"network_id"`
 	Ticker            sql.NullString `db:"ticker"`
 	BlockchainAliases pq.StringArray `db:"blockchain_aliases"`
-	AppCount          sql.NullInt32  `db:"app_count"`
-	Index             sql.NullInt32  `db:"_index"`
 	LogLimitBlocks    sql.NullInt32  `db:"log_limit_blocks"`
-	NodeCount         sql.NullInt32  `db:"node_count"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
 	Active            bool           `db:"active"`
 	CreatedAt         time.Time      `db:"created_at"`
@@ -135,13 +124,9 @@ func extractInsertDBBlockchain(blockchain *repository.Blockchain) *insertDBBlock
 		Description:       newSQLNullString(blockchain.Description),
 		EnforceResult:     newSQLNullString(blockchain.EnforceResult),
 		Network:           newSQLNullString(blockchain.Network),
-		NetworkID:         newSQLNullString(blockchain.NetworkID),
 		Ticker:            newSQLNullString(blockchain.Ticker),
 		BlockchainAliases: blockchain.BlockchainAliases,
-		AppCount:          newSQLNullInt32(int32(blockchain.AppCount)),
-		Index:             newSQLNullInt32(int32(blockchain.Index)),
 		LogLimitBlocks:    newSQLNullInt32(int32(blockchain.LogLimitBlocks)),
-		NodeCount:         newSQLNullInt32(int32(blockchain.NodeCount)),
 		RequestTimeout:    newSQLNullInt32(int32(blockchain.RequestTimeout)),
 		Active:            blockchain.Active,
 	}
@@ -150,10 +135,10 @@ func extractInsertDBBlockchain(blockchain *repository.Blockchain) *insertDBBlock
 type insertSyncCheckOptions struct {
 	BlockchainID string         `db:"blockchain_id"`
 	SyncCheck    sql.NullString `db:"synccheck"`
-	Body         sql.NullString `db:"opts_body"`
-	Path         sql.NullString `db:"opts_path"`
-	ResultKey    sql.NullString `db:"opts_result_key"`
-	Allowance    sql.NullInt32  `db:"opts_allowance"`
+	Body         sql.NullString `db:"body"`
+	Path         sql.NullString `db:"path"`
+	ResultKey    sql.NullString `db:"result_key"`
+	Allowance    sql.NullInt32  `db:"allowance"`
 }
 
 func (i *insertSyncCheckOptions) isNotNull() bool {

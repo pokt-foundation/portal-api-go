@@ -11,12 +11,11 @@ import (
 
 const (
 	selectLoadBalancers = `
-	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.origins, so.use_rpc_id, STRING_AGG(la.app_id, ',') AS app_ids
+	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.origins, so.use_rpc_id, STRING_AGG(la.app_id, ',') AS app_ids
 	FROM loadbalancers AS lb
 	LEFT JOIN stickiness_options AS so ON lb.lb_id=so.lb_id
 	LEFT JOIN lb_apps AS la ON lb.lb_id=la.lb_id
-	GROUP BY lb.lb_id, lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.relays_limit, so.stickiness, so.temp, so.origins, so.use_rpc_id
-	`
+	GROUP BY lb.lb_id, lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.temp, so.origins, so.use_rpc_id`
 	insertLoadBalancerScript = `
 	INSERT into loadbalancers (lb_id, name, user_id, request_timeout, gigastake, gigastake_redirect, created_at, updated_at)
 	VALUES (:lb_id, :name, :user_id, :request_timeout, :gigastake, :gigastake_redirect, :created_at, :updated_at)`
@@ -40,7 +39,7 @@ type dbLoadBalancer struct {
 	UserID            sql.NullString `db:"user_id"`
 	AppIDs            sql.NullString `db:"app_ids"`
 	Origins           pq.StringArray `db:"origins"`
-	RelaysLimit       sql.NullInt32  `db:"relays_limit"`
+	StickyMax         sql.NullInt32  `db:"sticky_max"`
 	RequestTimeout    sql.NullInt32  `db:"request_timeout"`
 	Gigastake         sql.NullBool   `db:"gigastake"`
 	GigastakeRedirect sql.NullBool   `db:"gigastake_redirect"`
@@ -79,9 +78,8 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 		StickyOptions: repository.StickyOptions{
 			Duration:      lb.Duration.String,
 			StickyOrigins: lb.Origins,
-			RelaysLimit:   int(lb.RelaysLimit.Int32),
+			StickyMax:     int(lb.StickyMax.Int32),
 			Stickiness:    lb.Stickiness.Bool,
-			UseRPCID:      lb.UseRPCID.Bool,
 		},
 		CreatedAt: lb.CreatedAt.Time,
 		UpdatedAt: lb.UpdatedAt.Time,
