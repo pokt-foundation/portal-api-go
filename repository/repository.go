@@ -187,21 +187,28 @@ type Blockchain struct {
 	LogLimitBlocks    int              `json:"logLimitBlocks"`
 	SyncAllowance     int              `json:"syncAllowance"`
 	Active            bool             `json:"active"`
-	Redirects         []Redirects      `json:"redirects"`
+	Redirects         []Redirect       `json:"redirects"`
 	SyncCheckOptions  SyncCheckOptions `json:"syncCheckOptions"`
+	CreatedAt         time.Time        `json:"createdAt"`
+	UpdatedAt         time.Time        `json:"updatedAt"`
 }
 
-type Redirects struct {
-	Alias          string `json:"alias"`
-	Domain         string `json:"domain"`
-	LoadBalancerID string `json:"loadBalancerID"`
+type Redirect struct {
+	ID             string    `json:"id"`
+	BlockchainID   string    `json:"blockchainID"`
+	Alias          string    `json:"alias"`
+	Domain         string    `json:"domain"`
+	LoadBalancerID string    `json:"loadBalancerID"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 type SyncCheckOptions struct {
-	Body      string `json:"body"`
-	ResultKey string `json:"resultKey"`
-	Path      string `json:"path"`
-	Allowance int    `json:"allowance"`
+	BlockchainID string `json:"blockchainID"`
+	Body         string `json:"body"`
+	ResultKey    string `json:"resultKey"`
+	Path         string `json:"path"`
+	Allowance    int    `json:"allowance"`
 }
 
 // loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
