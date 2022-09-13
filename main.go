@@ -79,9 +79,10 @@ func main() {
 
 	relayerSettings := relay.FreemiumSettings()
 	relayerSettings.DefaultStickyOptions = repository.StickyOptions{
-		Duration:       "30",
-		UseRPCID:       true,
-		RpcIDThreshold: 2,
+		Duration: "30",
+		// TO DO - we removed the UseRPCID and RpcIDThreshold fields, can the below code be removed also?
+		// UseRPCID:       true,
+		// RpcIDThreshold: 2,
 	}
 	relayerSettings.DefaultClientStickyOptions = sticky.StickyClient{}
 

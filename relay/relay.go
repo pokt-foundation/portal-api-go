@@ -359,10 +359,11 @@ func stickyKeyBuilder(d *RelayDetails) sticky.KeyBuilder {
 			BlockchainID: d.Blockchain.ID,
 		}
 
-		if o.UseRPCID {
-			k.RpcID = d.RelayOptions.RpcID
-			return k
-		}
+		// TO DO - we removed the UseRPCID field, can the below code be removed also?
+		// if o.UseRPCID {
+		// 	k.RpcID = d.RelayOptions.RpcID
+		// 	return k
+		// }
 
 		k.ApplicationID = d.Application.ID
 		k.LoadBalancerID = d.LoadBalancer.ID

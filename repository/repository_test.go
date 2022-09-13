@@ -88,7 +88,7 @@ func TestGetApplication(t *testing.T) {
 					Address:   "7fce086ea7c04a16654916110d40d341899875ee",
 					PublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",
 				},
-				FreeTierApplicationAccount: FreeTierApplicationAccount{
+				GatewayAAT: GatewayAAT{
 					Address:   "7fce086ea7c04a16654916110d40d341899875ee",
 					PublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",
 				},

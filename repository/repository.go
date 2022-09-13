@@ -121,11 +121,11 @@ type UpdateApplication struct {
 
 type GatewayAAT struct {
 	Address              string `json:"address"`
-	PublicKey            string `json:"publicKey"`
-	PrivateKey           string `json:"privateKey"`
 	ApplicationPublicKey string `json:"applicationPublicKey"`
 	ApplicationSignature string `json:"applicationSignature"`
 	ClientPublicKey      string `json:"clientPublicKey"`
+	PublicKey            string `json:"publicKey"`
+	PrivateKey           string `json:"privateKey"`
 	Version              string `json:"version"`
 }
 
