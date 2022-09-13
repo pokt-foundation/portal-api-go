@@ -20,7 +20,7 @@ func TestPostgresDriver_ReadBlockchains(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.NewRows([]string{"blockchain_id", "altruist", "blockchain", "blockchain_aliases", "chain_id", "chain_id_check",
-		"description", "log_limit_blocks", "network", "_path", "request_timeout", "ticker"}).
+		"description", "log_limit_blocks", "network", "path", "request_timeout", "ticker"}).
 		AddRow("0021", "https://dummy.com:18546", "eth-mainnet", pq.StringArray{"eth-mainnet"}, 21, sql.NullString{},
 			"Ethereum Mainnet", 212121, "ETH-1", sql.NullString{}, sql.NullString{}, "ETH").
 		AddRow("0021", "https://dummy.com:18546", "eth-mainnet", pq.StringArray{"eth-mainnet"}, 21, sql.NullString{},
