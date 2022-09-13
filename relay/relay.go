@@ -359,11 +359,6 @@ func stickyKeyBuilder(d *RelayDetails) sticky.KeyBuilder {
 			BlockchainID: d.Blockchain.ID,
 		}
 
-		if o.UseRPCID {
-			k.RpcID = d.RelayOptions.RpcID
-			return k
-		}
-
 		k.ApplicationID = d.Application.ID
 		k.LoadBalancerID = d.LoadBalancer.ID
 		return k
