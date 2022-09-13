@@ -124,7 +124,6 @@ type GatewayAAT struct {
 	ApplicationPublicKey string `json:"applicationPublicKey"`
 	ApplicationSignature string `json:"applicationSignature"`
 	ClientPublicKey      string `json:"clientPublicKey"`
-	PublicKey            string `json:"publicKey"`
 	PrivateKey           string `json:"privateKey"`
 	Version              string `json:"version"`
 }
