@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	selectBlockchainsScript = `SELECT b.blockchain_id, b.altruist, b.blockchain, b.blockchain_aliases, b.chain_id, b.chain_id_check, b.description, b.enforce_result, b.log_limit_blocks, b.network, b._path, b.request_timeout, b.ticker, b.active,
+	selectBlockchainsScript = `SELECT b.blockchain_id, b.altruist, b.blockchain, b.blockchain_aliases, b.chain_id, b.chain_id_check, b.description, b.enforce_result, b.log_limit_blocks, b.network, b.path, b.request_timeout, b.ticker, b.active,
 	s.synccheck as s_sync_check, s.allowance as s_allowance, s.body as s_body, s.path as s_path, s.result_key as s_result_key
 	FROM blockchains as b
 	LEFT JOIN sync_check_options AS s ON b.blockchain_id=s.blockchain_id`
 	insertBlockchainScript = `
-	INSERT into blockchains (blockchain_id, active, altruist, blockchain, blockchain_aliases, chain_id, chain_id_check, description, enforce_result, log_limit_blocks, network, _path, request_timeout, ticker, created_at, updated_at)
-	VALUES (:blockchain_id, :active, :altruist, :blockchain, :blockchain_aliases, :chain_id, :chain_id_check, :description, :enforce_result, :log_limit_blocks, :network, :_path, :request_timeout, :ticker, :created_at, :updated_at)`
+	INSERT into blockchains (blockchain_id, active, altruist, blockchain, blockchain_aliases, chain_id, chain_id_check, description, enforce_result, log_limit_blocks, network, path, request_timeout, ticker, created_at, updated_at)
+	VALUES (:blockchain_id, :active, :altruist, :blockchain, :blockchain_aliases, :chain_id, :chain_id_check, :description, :enforce_result, :log_limit_blocks, :network, :path, :request_timeout, :ticker, :created_at, :updated_at)`
 	insertSyncCheckOptionsScript = `
 	INSERT into sync_check_options (blockchain_id, synccheck, allowance, body, path, result_key)
 	VALUES (:blockchain_id, :synccheck, :allowance, :body, :path, :result_key)`
@@ -31,7 +31,7 @@ type dbBlockchain struct {
 	Blockchain        sql.NullString `db:"blockchain"`
 	ChainID           sql.NullString `db:"chain_id"`
 	ChainIDCheck      sql.NullString `db:"chain_id_check"`
-	ChainPath         sql.NullString `db:"_path"`
+	ChainPath         sql.NullString `db:"path"`
 	Description       sql.NullString `db:"description"`
 	EnforceResult     sql.NullString `db:"enforce_result"`
 	Network           sql.NullString `db:"network"`
@@ -82,7 +82,7 @@ type insertDBBlockchain struct {
 	Blockchain        sql.NullString `db:"blockchain"`
 	ChainID           sql.NullString `db:"chain_id"`
 	ChainIDCheck      sql.NullString `db:"chain_id_check"`
-	ChainPath         sql.NullString `db:"_path"`
+	ChainPath         sql.NullString `db:"path"`
 	Description       sql.NullString `db:"description"`
 	EnforceResult     sql.NullString `db:"enforce_result"`
 	Network           sql.NullString `db:"network"`
