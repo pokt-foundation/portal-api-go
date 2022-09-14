@@ -33,7 +33,6 @@ type Application struct {
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
-	PublicPocketAccount  PublicPocketAccount  `json:"publicPocketAccount"`
 	Limits               AppLimits            `json:"limits"`
 	CreatedAt            time.Time            `json:"createdAt"`
 	UpdatedAt            time.Time            `json:"updatedAt"`
@@ -162,11 +161,6 @@ type NotificationSettings struct {
 	Half          bool `json:"half"`
 	ThreeQuarters bool `json:"threeQuarters"`
 	Full          bool `json:"full"`
-}
-
-type PublicPocketAccount struct {
-	Address   string `json:"address"`
-	PublicKey string `json:"publicKey"`
 }
 
 type Blockchain struct {

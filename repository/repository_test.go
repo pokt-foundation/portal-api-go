@@ -84,10 +84,6 @@ func TestGetApplication(t *testing.T) {
 				ID:          "4m14c3bttu6818e7kqz3181j",
 				Name:        "TEST_DATA_Name_for_4m14c3bttu6818e7kqz3181j",
 				Description: "TESTDATA_Description_4m14c3bttu6818e7kqz3181j",
-				PublicPocketAccount: PublicPocketAccount{
-					Address:   "7fce086ea7c04a16654916110d40d341899875ee",
-					PublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",
-				},
 				GatewayAAT: GatewayAAT{
 					Address:              "7fce086ea7c04a16654916110d40d341899875ee",
 					ApplicationPublicKey: "7eaceace60765c8bb544038e14dc8c26455df82f55f8edd753a0459ff8361feb",

@@ -16,12 +16,10 @@ const (
 	selectApplications = `
 	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type, a.first_date_surpassed,
 	ga.address AS ga_address, ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
-	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
 	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
 	FROM applications AS a
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
-	LEFT JOIN public_pocket_account AS pa ON a.application_id=pa.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
 	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id`
 	selectGatewaySettings = `
@@ -36,9 +34,6 @@ const (
 	insertGatewayAATScript = `
 	INSERT into gateway_aat (application_id, address, client_public_key, private_key, public_key, signature, version)
 	VALUES (:application_id, :address, :client_public_key, :private_key, :public_key, :signature, :version)`
-	insertPublicPocketAccountScript = `
-	INSERT into public_pocket_account (application_id, public_key, address)
-	VALUES (:application_id, :public_key, :address)`
 	insertGatewaySettingsScript = `
 	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents, whitelist_blockchains)
 	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents, :whitelist_blockchains)`
@@ -147,10 +142,6 @@ func (a *dbApplication) toApplication() *repository.Application {
 			ThreeQuarters: a.ThreeQuarters.Bool,
 			Full:          a.Full.Bool,
 		},
-		PublicPocketAccount: repository.PublicPocketAccount{
-			PublicKey: a.PAPublicKey.String,
-			Address:   a.PAAdress.String,
-		},
 	}
 }
 
@@ -207,24 +198,6 @@ func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
 		PublicKey:       newSQLNullString(app.GatewayAAT.ApplicationPublicKey),
 		Signature:       newSQLNullString(app.GatewayAAT.ApplicationSignature),
 		Version:         newSQLNullString(app.GatewayAAT.Version),
-	}
-}
-
-type insertPublicPocketAccount struct {
-	ApplicationID string         `db:"application_id"`
-	PublicKey     sql.NullString `db:"public_key"`
-	Address       sql.NullString `db:"address"`
-}
-
-func (i *insertPublicPocketAccount) isNotNull() bool {
-	return i.PublicKey.Valid || i.Address.Valid
-}
-
-func extractInsertPublicPocketAccount(app *repository.Application) *insertPublicPocketAccount {
-	return &insertPublicPocketAccount{
-		ApplicationID: app.ID,
-		PublicKey:     newSQLNullString(app.PublicPocketAccount.PublicKey),
-		Address:       newSQLNullString(app.PublicPocketAccount.Address),
 	}
 }
 
@@ -447,9 +420,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	nullables = append(nullables, extractInsertGatewayAAT(app))
 	nullablesScripts = append(nullablesScripts, insertGatewayAATScript)
-
-	nullables = append(nullables, extractInsertPublicPocketAccount(app))
-	nullablesScripts = append(nullablesScripts, insertPublicPocketAccountScript)
 
 	nullables = append(nullables, extractInsertGatewaySettings(app))
 	nullablesScripts = append(nullablesScripts, insertGatewaySettingsScript)

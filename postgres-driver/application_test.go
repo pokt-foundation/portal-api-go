@@ -66,10 +66,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT into public_pocket_account").WithArgs(sqlmock.AnyArg(),
-		"7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d", "f463b4dd88d865c22acbf38981b6c505bcc46c64").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs(sqlmock.AnyArg(),
 		"54y4p93body6qco2nrhonz6bltn1k5e8", true, `[{"blockchainID":"0021","contracts":["ajua"]}]`,
 		`[{"BlockchainID":"0021","methods":["POST"]}]`, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
@@ -98,10 +94,6 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 			ApplicationSignature: "1566702d9a667c6007639eeb47a48cd2fed79592c5db9040eadc89f81748a4adef82711854b32065ddafa86eec1f1ed3b6f4f03a0786d9cf12c5262b948d9c01",
 			ClientPublicKey:      "8aaedb01a840fd6c9ab5019786c485bd98e69ca492cdb685aabee8473e7fad77",
 			Version:              "1",
-		},
-		PublicPocketAccount: repository.PublicPocketAccount{
-			PublicKey: "7a80a331c20cb0ac9e30a0d0c68df5f334b9c8bbe10dcfd95b6cb42bf412037d",
-			Address:   "f463b4dd88d865c22acbf38981b6c505bcc46c64",
 		},
 		GatewaySettings: repository.GatewaySettings{
 			SecretKey:         "54y4p93body6qco2nrhonz6bltn1k5e8",
