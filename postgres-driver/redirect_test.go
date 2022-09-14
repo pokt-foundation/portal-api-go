@@ -48,8 +48,8 @@ func TestPostgresDriver_WriteRedirect(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("INSERT into redirects").WithArgs(sqlmock.AnyArg(),
-		"0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network", sqlmock.AnyArg(), sqlmock.AnyArg()).
+	mock.ExpectExec("INSERT into redirects").WithArgs("0021", "pokt-mainnet", "12345",
+		"pokt-mainnet.gateway.network", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectCommit()
@@ -68,8 +68,8 @@ func TestPostgresDriver_WriteRedirect(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("INSERT into redirects").WithArgs(sqlmock.AnyArg(),
-		"0021", "pokt-mainnet", "12345", "pokt-mainnet.gateway.network", sqlmock.AnyArg(), sqlmock.AnyArg()).
+	mock.ExpectExec("INSERT into redirects").WithArgs("0021", "pokt-mainnet", "12345",
+		"pokt-mainnet.gateway.network", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in redirects"))
 
 	app, err = driver.WriteRedirect(redirectToSend)
