@@ -12,12 +12,11 @@ const (
 	SELECT blockchain_id, alias, loadbalancer, domain 
 	FROM redirects`
 	insertRedirectScript = `
-	INSERT into redirects (redirect_id, blockchain_id, alias, loadbalancer, domain, created_at, updated_at)
-	VALUES (:redirect_id, :blockchain_id, :alias, :loadbalancer, :domain, :created_at, :updated_at)`
+	INSERT into redirects (blockchain_id, alias, loadbalancer, domain, created_at, updated_at)
+	VALUES (:blockchain_id, :alias, :loadbalancer, :domain, :created_at, :updated_at)`
 )
 
 type dbRedirect struct {
-	RedirectID     string         `db:"redirect_id"`
 	BlockchainID   string         `db:"blockchain_id"`
 	Alias          sql.NullString `db:"alias"`
 	LoadBalancerID sql.NullString `db:"loadbalancer"`
@@ -55,7 +54,6 @@ func (d *PostgresDriver) ReadRedirects() ([]*repository.Redirect, error) {
 
 func extractDBRedirect(redirect *repository.Redirect) *dbRedirect {
 	return &dbRedirect{
-		RedirectID:     redirect.ID,
 		BlockchainID:   redirect.BlockchainID,
 		Alias:          newSQLNullString(redirect.Alias),
 		LoadBalancerID: newSQLNullString(redirect.LoadBalancerID),

@@ -11,11 +11,11 @@ import (
 
 const (
 	selectLoadBalancers = `
-	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.origins, so.use_rpc_id, STRING_AGG(la.app_id, ',') AS app_ids
+	SELECT lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.origins, STRING_AGG(la.app_id, ',') AS app_ids
 	FROM loadbalancers AS lb
 	LEFT JOIN stickiness_options AS so ON lb.lb_id=so.lb_id
 	LEFT JOIN lb_apps AS la ON lb.lb_id=la.lb_id
-	GROUP BY lb.lb_id, lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.temp, so.origins, so.use_rpc_id`
+	GROUP BY lb.lb_id, lb.lb_id, lb.name, lb.created_at, lb.updated_at, lb.request_timeout, lb.gigastake, lb.gigastake_redirect, lb.user_id, so.duration, so.sticky_max, so.stickiness, so.origins, `
 	insertLoadBalancerScript = `
 	INSERT into loadbalancers (lb_id, name, user_id, request_timeout, gigastake, gigastake_redirect, created_at, updated_at)
 	VALUES (:lb_id, :name, :user_id, :request_timeout, :gigastake, :gigastake_redirect, :created_at, :updated_at)`
@@ -44,7 +44,6 @@ type dbLoadBalancer struct {
 	Gigastake         sql.NullBool   `db:"gigastake"`
 	GigastakeRedirect sql.NullBool   `db:"gigastake_redirect"`
 	Stickiness        sql.NullBool   `db:"stickiness"`
-	UseRPCID          sql.NullBool   `db:"use_rpc_id"`
 	CreatedAt         sql.NullTime   `db:"created_at"`
 	UpdatedAt         sql.NullTime   `db:"updated_at"`
 }
