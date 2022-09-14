@@ -29,6 +29,7 @@ type Application struct {
 	Status               AppStatus            `json:"status"`
 	Dummy                bool                 `json:"dummy"`
 	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
+	FirstDateSurpassed   *time.Time           `json:"firstDateSurpassed"`
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
@@ -101,6 +102,7 @@ type AppLimits struct {
 	PublicKey            string                `json:"publicKey,omitempty"`
 	PlanType             PayPlanType           `json:"planType"`
 	DailyLimit           int                   `json:"dailyLimit"`
+	FirstDateSurpassed   *time.Time            `json:"firstDateSurpassed,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 }
 
@@ -114,9 +116,15 @@ type UpdateApplication struct {
 	Name                 string                `json:"name,omitempty"`
 	Status               AppStatus             `json:"status,omitempty"`
 	PayPlanType          PayPlanType           `json:"payPlanType,omitempty"`
+	FirstDateSurpassed   time.Time             `json:"firstDateSurpassed,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`
+}
+
+type UpdateFirstDateSurpassed struct {
+	ApplicationIDs     []string  `json:"applicationIDs"`
+	FirstDateSurpassed time.Time `json:"firstDateSurpassed"`
 }
 
 type GatewayAAT struct {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -61,6 +62,17 @@ func newSQLNullInt32(value int32) sql.NullInt32 {
 
 	return sql.NullInt32{
 		Int32: value,
+		Valid: true,
+	}
+}
+
+func newSQLNullTime(value time.Time) sql.NullTime {
+	if value.IsZero() {
+		return sql.NullTime{}
+	}
+
+	return sql.NullTime{
+		Time:  value,
 		Valid: true,
 	}
 }
