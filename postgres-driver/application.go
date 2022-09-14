@@ -14,7 +14,7 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type,
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type, a.first_date_surpassed,
 	ga.address AS ga_address,ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
 	pa.public_key AS pa_public_key, pa.address AS pa_address,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
@@ -47,8 +47,12 @@ const (
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), updated_at = $4
-	WHERE application_id = $5`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), first_date_surpassed = COALESCE($4, first_date_surpassed), updated_at = $5
+	WHERE application_id = $6`
+	updateFirstDateSurpassedScript = `
+	UPDATE applications
+	SET first_date_surpassed = :first_date_surpassed, updated_at = :updated_at
+	WHERE application_id IN(:application_ids)`
 	removeApplication = `
 	UPDATE applications
 	SET status = COALESCE($1, status), updated_at = $2
@@ -87,6 +91,7 @@ type dbApplication struct {
 	SecretKey            sql.NullString `db:"secret_key"`
 	URL                  sql.NullString `db:"url"`
 	PayPlanType          sql.NullString `db:"pay_plan_type"`
+	FirstDateSurpassed   sql.NullTime   `db:"first_date_surpassed"`
 	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
 	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
@@ -105,18 +110,19 @@ type dbApplication struct {
 
 func (a *dbApplication) toApplication() *repository.Application {
 	return &repository.Application{
-		ID:           a.ApplicationID,
-		UserID:       a.UserID.String,
-		Name:         a.Name.String,
-		Status:       repository.AppStatus(a.Status.String),
-		ContactEmail: a.ContactEmail.String,
-		Description:  a.Description.String,
-		Owner:        a.Owner.String,
-		URL:          a.URL.String,
-		PayPlanType:  repository.PayPlanType(a.PayPlanType.String),
-		Dummy:        a.Dummy.Bool,
-		CreatedAt:    a.CreatedAt.Time,
-		UpdatedAt:    a.UpdatedAt.Time,
+		ID:                 a.ApplicationID,
+		UserID:             a.UserID.String,
+		Name:               a.Name.String,
+		Status:             repository.AppStatus(a.Status.String),
+		ContactEmail:       a.ContactEmail.String,
+		Description:        a.Description.String,
+		Owner:              a.Owner.String,
+		URL:                a.URL.String,
+		PayPlanType:        repository.PayPlanType(a.PayPlanType.String),
+		FirstDateSurpassed: &a.FirstDateSurpassed.Time,
+		Dummy:              a.Dummy.Bool,
+		CreatedAt:          a.CreatedAt.Time,
+		UpdatedAt:          a.UpdatedAt.Time,
 		GatewayAAT: repository.GatewayAAT{
 			Address:              a.GAAddress.String,
 			ApplicationPublicKey: a.GAPublicKey.String,
@@ -535,7 +541,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 	}
 
 	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)),
-		newSQLNullString(string(fieldsToUpdate.PayPlanType)), time.Now(), id)
+		newSQLNullString(string(fieldsToUpdate.PayPlanType)), newSQLNullTime(fieldsToUpdate.FirstDateSurpassed), time.Now(), id)
 	if err != nil {
 		return err
 	}
@@ -562,6 +568,37 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 	}
 
 	return tx.Commit()
+}
+
+type updateFirstDateSurpassed struct {
+	ApplicationIDs     []string  `db:"application_ids"`
+	FirstDateSurpassed time.Time `db:"first_date_surpassed"`
+	UpdatedAt          time.Time `db:"updated_at"`
+}
+
+func (d *PostgresDriver) UpdateFirstDateSurpassed(firstDateSurpassed *repository.UpdateFirstDateSurpassed) error {
+	query, args, err := sqlx.Named(updateFirstDateSurpassedScript, &updateFirstDateSurpassed{
+		ApplicationIDs:     firstDateSurpassed.ApplicationIDs,
+		FirstDateSurpassed: firstDateSurpassed.FirstDateSurpassed,
+		UpdatedAt:          time.Now(),
+	})
+	if err != nil {
+		return err
+	}
+
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
+		return err
+	}
+
+	query = d.Rebind(query)
+
+	_, err = d.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RemoveApplication updates fields available in options in db
