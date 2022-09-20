@@ -81,6 +81,8 @@ type PayPlanType string
 
 const (
 	TestPlanV0   PayPlanType = "TEST_PLAN_V0"
+	TestPlan10K  PayPlanType = "TEST_PLAN_10K"
+	TestPlan90k  PayPlanType = "TEST_PLAN_90K"
 	FreetierV0   PayPlanType = "FREETIER_V0"
 	PayAsYouGoV0 PayPlanType = "PAY_AS_YOU_GO_V0"
 )
@@ -89,6 +91,8 @@ var (
 	ValidPayPlanTypes = map[PayPlanType]bool{
 		"":           true, // needs to be allowed while the change for all apps to have plans is done
 		TestPlanV0:   true,
+		TestPlan10K:  true,
+		TestPlan90k:  true,
 		FreetierV0:   true,
 		PayAsYouGoV0: true,
 	}
