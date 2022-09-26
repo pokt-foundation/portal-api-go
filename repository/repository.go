@@ -141,7 +141,7 @@ type GatewayAAT struct {
 
 type GatewaySettings struct {
 	SecretKey            string              `json:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
+	SecretKeyRequired    bool                `json:"secretKeyRequired"`
 	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
 	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
 	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
