@@ -66,6 +66,17 @@ func newSQLNullInt32(value int32) sql.NullInt32 {
 	}
 }
 
+func newSQLNullInt64(value int64) sql.NullInt64 {
+	if value == 0 {
+		return sql.NullInt64{}
+	}
+
+	return sql.NullInt64{
+		Int64: value,
+		Valid: true,
+	}
+}
+
 func newSQLNullTime(value time.Time) sql.NullTime {
 	if value.IsZero() {
 		return sql.NullTime{}
@@ -84,4 +95,46 @@ func generateRandomID() (string, error) {
 	}
 
 	return hex.EncodeToString(bytes), nil
+}
+
+type nullable interface {
+	isNotNull() bool
+}
+
+type updatable interface {
+	isUpdatable() bool
+	read(appID string, driver *PostgresDriver) (updatable, error)
+}
+
+type update struct {
+	insertScript string
+	updateScript string
+	toUpdate     updatable
+}
+
+func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
+	if !update.toUpdate.isUpdatable() {
+		return nil
+	}
+
+	_, err := update.toUpdate.read(id, d)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err = tx.NamedExec(update.insertScript, update.toUpdate)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return err
+	}
+
+	_, err = tx.NamedExec(update.updateScript, update.toUpdate)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

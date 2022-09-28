@@ -238,8 +238,9 @@ type LoadBalancer struct {
 
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
-	Name   string `json:"name,omitempty"`
-	Remove bool   `json:"remove,omitempty"`
+	Name          string         `json:"name,omitempty"`
+	StickyOptions *StickyOptions `json:"stickinessOptions,omitempty"`
+	Remove        bool           `json:"remove,omitempty"`
 }
 
 type StickyOptions struct {
