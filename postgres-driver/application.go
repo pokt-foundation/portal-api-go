@@ -390,10 +390,6 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 	return applications, nil
 }
 
-type nullable interface {
-	isNotNull() bool
-}
-
 // WriteApplication saves input application in the database
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
 	if !repository.ValidAppStatuses[app.Status] {
@@ -447,44 +443,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 	}
 
 	return app, tx.Commit()
-}
-
-type updatable interface {
-	isUpdatable() bool
-	read(appID string, driver *PostgresDriver) (updatable, error)
-}
-
-type update struct {
-	insertScript string
-	updateScript string
-	toUpdate     updatable
-}
-
-func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
-	if !update.toUpdate.isUpdatable() {
-		return nil
-	}
-
-	_, err := update.toUpdate.read(id, d)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			_, err = tx.NamedExec(update.insertScript, update.toUpdate)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		return err
-	}
-
-	_, err = tx.NamedExec(update.updateScript, update.toUpdate)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // UpdateApplication updates fields available in options in db
