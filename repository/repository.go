@@ -191,13 +191,11 @@ type Blockchain struct {
 }
 
 type Redirect struct {
-	ID             string    `json:"id"`
-	BlockchainID   string    `json:"blockchainID"`
-	Alias          string    `json:"alias"`
-	Domain         string    `json:"domain"`
-	LoadBalancerID string    `json:"loadBalancerID"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID             string `json:"id"`
+	BlockchainID   string `json:"blockchainID"`
+	Alias          string `json:"alias"`
+	Domain         string `json:"domain"`
+	LoadBalancerID string `json:"loadBalancerID"`
 }
 
 type SyncCheckOptions struct {

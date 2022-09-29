@@ -2,7 +2,6 @@ package postgresdriver
 
 import (
 	"database/sql"
-	"time"
 
 	"github.com/pokt-foundation/portal-api-go/repository"
 )
@@ -12,8 +11,8 @@ const (
 	SELECT blockchain_id, alias, loadbalancer, domain 
 	FROM redirects`
 	insertRedirectScript = `
-	INSERT into redirects (blockchain_id, alias, loadbalancer, domain, created_at, updated_at)
-	VALUES (:blockchain_id, :alias, :loadbalancer, :domain, :created_at, :updated_at)`
+	INSERT into redirects (blockchain_id, alias, loadbalancer, domain)
+	VALUES (:blockchain_id, :alias, :loadbalancer, :domain)`
 )
 
 type dbRedirect struct {
@@ -21,8 +20,6 @@ type dbRedirect struct {
 	Alias          sql.NullString `db:"alias"`
 	LoadBalancerID sql.NullString `db:"loadbalancer"`
 	Domain         sql.NullString `db:"domain"`
-	CreatedAt      time.Time      `db:"created_at"`
-	UpdatedAt      time.Time      `db:"updated_at"`
 }
 
 func (r *dbRedirect) toRedirect() *repository.Redirect {
@@ -58,8 +55,6 @@ func extractDBRedirect(redirect *repository.Redirect) *dbRedirect {
 		Alias:          newSQLNullString(redirect.Alias),
 		LoadBalancerID: newSQLNullString(redirect.LoadBalancerID),
 		Domain:         newSQLNullString(redirect.Domain),
-		CreatedAt:      redirect.CreatedAt,
-		UpdatedAt:      redirect.UpdatedAt,
 	}
 }
 
@@ -71,8 +66,6 @@ func (d *PostgresDriver) WriteRedirect(redirect *repository.Redirect) (*reposito
 	}
 
 	redirect.ID = id
-	redirect.CreatedAt = time.Now()
-	redirect.UpdatedAt = time.Now()
 
 	insertApp := extractDBRedirect(redirect)
 
