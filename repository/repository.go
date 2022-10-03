@@ -141,7 +141,7 @@ type GatewayAAT struct {
 
 type GatewaySettings struct {
 	SecretKey            string              `json:"secretKey"`
-	SecretKeyRequired    bool                `json:"secreyKeyRequired"`
+	SecretKeyRequired    bool                `json:"secretKeyRequired"`
 	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
 	WhitelistUserAgents  []string            `json:"whitelistUserAgents,omitempty"`
 	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
@@ -238,8 +238,9 @@ type LoadBalancer struct {
 
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
-	Name   string `json:"name,omitempty"`
-	Remove bool   `json:"remove,omitempty"`
+	Name          string         `json:"name,omitempty"`
+	StickyOptions *StickyOptions `json:"stickinessOptions,omitempty"`
+	Remove        bool           `json:"remove,omitempty"`
 }
 
 type StickyOptions struct {
