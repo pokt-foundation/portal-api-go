@@ -53,15 +53,15 @@ func (c nodeChecker) NodesSupportingApp(ctx context.Context, app *repository.App
 	for _, chain := range chains {
 		running++
 		go func(results chan *chainCheckResult, blockchain *repository.Blockchain) {
-			log := c.Logger.WithFields(logger.Fields{"Application": app, "Chain": chain})
-			session, err := c.SessionRetriever(ctx, app, chain.ChainID)
+			log := c.Logger.WithFields(logger.Fields{"Application": app, "Chain": blockchain})
+			session, err := c.SessionRetriever(ctx, app, blockchain.ChainID)
 			if err != nil {
 				log.WithFields(logger.Fields{"Error": err}).Warn("Error getting session")
 				results <- nil
 				return
 			}
 
-			nodes, err := c.nodesSupportingChain(pocketAAT, chain, session)
+			nodes, err := c.nodesSupportingChain(pocketAAT, blockchain, session)
 			if err != nil {
 				log.WithFields(logger.Fields{"error": err}).Warn("Failed to check support for chain")
 				results <- nil
@@ -121,7 +121,7 @@ func (c nodeChecker) nodesSupportingChain(aat *provider.PocketAAT, blockchain *r
 	return supportingNodes, nil
 }
 
-func (n nodeChecker) nodeSupportsChain(aat *provider.PocketAAT, blockchain *repository.Blockchain, node *provider.Node, session *provider.Session) (bool, error) {
+func (c nodeChecker) nodeSupportsChain(aat *provider.PocketAAT, blockchain *repository.Blockchain, node *provider.Node, session *provider.Session) (bool, error) {
 	// TODO: Difference between blockchain.ChainID and blockchain.ID
 	relay := relayer.Input{
 		Method:     http.MethodPost,
@@ -133,7 +133,7 @@ func (n nodeChecker) nodeSupportsChain(aat *provider.PocketAAT, blockchain *repo
 		Node:       node,
 	}
 
-	r, err := n.PocketRelayer.Relay(&relay, nil)
+	r, err := c.PocketRelayer.Relay(&relay, nil)
 	if err != nil {
 		return false, fmt.Errorf("Error relaying: %w", err)
 	}
@@ -143,11 +143,12 @@ func (n nodeChecker) nodeSupportsChain(aat *provider.PocketAAT, blockchain *repo
 	return chainID == blockchain.ChainID, nil
 }
 
-func pocketAAT(app repository.Application) provider.PocketAAT {
-	return provider.PocketAAT{
-		AppPubKey:    app.GatewayAAT.ApplicationPublicKey,
-		ClientPubKey: app.GatewayAAT.ClientPublicKey,
-		Version:      app.GatewayAAT.Version,
-		Signature:    app.GatewayAAT.ApplicationSignature,
-	}
-}
+// TODO: Determine if needed
+// func pocketAAT(app repository.Application) provider.PocketAAT {
+// 	return provider.PocketAAT{
+// 		AppPubKey:    app.GatewayAAT.ApplicationPublicKey,
+// 		ClientPubKey: app.GatewayAAT.ClientPublicKey,
+// 		Version:      app.GatewayAAT.Version,
+// 		Signature:    app.GatewayAAT.ApplicationSignature,
+// 	}
+// }

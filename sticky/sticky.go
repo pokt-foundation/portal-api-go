@@ -36,8 +36,8 @@ type OptionsVerifier func(repository.StickyOptions) error
 type StickyClient struct {
 	PreferredApplicationID string
 	PreferredNodeAddress   string
-	RpcID int
-	ttl   time.Time
+	RpcID                  int
+	ttl                    time.Time
 
 	Relays *CountWithTTL
 	Errors *CountWithTTL

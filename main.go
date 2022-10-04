@@ -98,5 +98,9 @@ func main() {
 
 	log.Info("Starting http server")
 	http.HandleFunc("/", web.GetHttpServer(relayer, log))
-	http.ListenAndServe(fmt.Sprintf(":%d", settings.Port), nil)
+
+	err = http.ListenAndServe(fmt.Sprintf(":%d", settings.Port), nil)
+	if err != nil {
+		panic(err)
+	}
 }
