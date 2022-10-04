@@ -321,7 +321,7 @@ func (r *relayServer) sendRelay(details *RelayDetails) error {
 	if err != nil {
 		log.WithFields(logger.Fields{"error": err}).Info("Error relaying")
 		// TODO: differentiate user errors from node errors
-		r.nodeSticker.Failure(&details.StickyDetails)
+		err := r.nodeSticker.Failure(&details.StickyDetails)
 		return err
 	}
 

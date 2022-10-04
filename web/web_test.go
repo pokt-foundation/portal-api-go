@@ -124,7 +124,7 @@ func TestBuildRelayOptions(t *testing.T) {
 				URL: &url.URL{
 					Path: "/invalid-path",
 				},
-				Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"body": "body"}`))), //&httpRequestBody{[]byte("body")},
+				Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"body": "body"}`))), // &httpRequestBody{[]byte("body")},
 			},
 			expectedErr: ErrInvalidPath,
 		},
