@@ -54,7 +54,7 @@ func TestPostgresDriver_WriteRedirect(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	redirectToSend := &repository.Redirect{
+	redirectToSend := repository.Redirect{
 		ID:             "1",
 		BlockchainID:   "0021",
 		Alias:          "pokt-mainnet",

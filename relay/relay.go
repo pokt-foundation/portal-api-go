@@ -251,11 +251,11 @@ func (r *relayServer) fetchLoadBalancerApplication(lb repository.LoadBalancer, p
 	// TODO: remove once LBs applications are returned in a map[AppID]*Application
 	for _, app := range apps {
 		if app.ID == preferredApplicationID {
-			return app, nil
+			return &app, nil
 		}
 	}
 
-	return apps[rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(apps))], nil
+	return &apps[rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(apps))], nil
 }
 
 func (r *relayServer) sendRelay(details *RelayDetails) error {

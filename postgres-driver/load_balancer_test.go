@@ -68,7 +68,7 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	loadBalancer, err := driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err := driver.WriteLoadBalancer(repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
@@ -89,7 +89,7 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 		"yes", "60e85042bf95f5003559b791", sql.NullInt32{}, false, false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in loadbalancers"))
 
-	loadBalancer, err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err = driver.WriteLoadBalancer(repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
@@ -108,7 +108,7 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 		"21", 21, true, pq.StringArray([]string{"pjog"})).
 		WillReturnError(errors.New("error in stickiness options"))
 
-	loadBalancer, err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err = driver.WriteLoadBalancer(repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
@@ -132,7 +132,7 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 	mock.ExpectExec("INSERT into lb_apps").WithArgs(sqlmock.AnyArg(), "61eae7640ae317bbc6c36dbb").
 		WillReturnError(errors.New("error in lb_apps"))
 
-	loadBalancer, err = driver.WriteLoadBalancer(&repository.LoadBalancer{
+	loadBalancer, err = driver.WriteLoadBalancer(repository.LoadBalancer{
 		ID:             "60ddc61b6e29c3003378361D",
 		Name:           "yes",
 		UserID:         "60e85042bf95f5003559b791",
@@ -168,7 +168,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", repository.UpdateLoadBalancer{
 		Name: "rochy",
 		StickyOptions: &repository.StickyOptions{
 			Duration:      "21",
@@ -193,7 +193,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", repository.UpdateLoadBalancer{
 		Name: "rochy",
 		StickyOptions: &repository.StickyOptions{
 			Duration:      "21",
@@ -210,7 +210,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 		"60ddc61b6e29c3003378361D").
 		WillReturnError(errors.New("error load balancers"))
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", repository.UpdateLoadBalancer{
 		Name: "rochy",
 	})
 	c.EqualError(err, "error load balancers")
@@ -223,7 +223,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM stickiness_options (.+)").WillReturnError(errors.New("error reading options"))
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", &repository.UpdateLoadBalancer{
+	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", repository.UpdateLoadBalancer{
 		Name: "rochy",
 		StickyOptions: &repository.StickyOptions{
 			Duration:      "21",
@@ -234,10 +234,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 	})
 	c.EqualError(err, "error reading options")
 
-	err = driver.UpdateLoadBalancer("60ddc61b6e29c3003378361D", nil)
-	c.Equal(ErrNoFieldsToUpdate, err)
-
-	err = driver.UpdateLoadBalancer("", nil)
+	err = driver.UpdateLoadBalancer("", repository.UpdateLoadBalancer{})
 	c.Equal(ErrMissingID, err)
 }
 

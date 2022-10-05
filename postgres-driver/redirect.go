@@ -25,8 +25,8 @@ type dbRedirect struct {
 	UpdatedAt      time.Time      `db:"updated_at"`
 }
 
-func (r *dbRedirect) toRedirect() *repository.Redirect {
-	return &repository.Redirect{
+func (r dbRedirect) toRedirect() repository.Redirect {
+	return repository.Redirect{
 		BlockchainID:   r.BlockchainID,
 		Alias:          r.Alias.String,
 		LoadBalancerID: r.LoadBalancerID.String,
@@ -35,15 +35,15 @@ func (r *dbRedirect) toRedirect() *repository.Redirect {
 }
 
 // ReadRedirects returns all redirects on the database
-func (d *PostgresDriver) ReadRedirects() ([]*repository.Redirect, error) {
-	var dbRedirects []*dbRedirect
+func (d *PostgresDriver) ReadRedirects() ([]repository.Redirect, error) {
+	var dbRedirects []dbRedirect
 
 	err := d.Select(&dbRedirects, selectRedirectsScript)
 	if err != nil {
 		return nil, err
 	}
 
-	var redirects []*repository.Redirect
+	var redirects []repository.Redirect
 
 	for _, dbRedirect := range dbRedirects {
 		redirects = append(redirects, dbRedirect.toRedirect())
@@ -52,7 +52,7 @@ func (d *PostgresDriver) ReadRedirects() ([]*repository.Redirect, error) {
 	return redirects, nil
 }
 
-func extractDBRedirect(redirect *repository.Redirect) *dbRedirect {
+func extractDBRedirect(redirect repository.Redirect) *dbRedirect {
 	return &dbRedirect{
 		BlockchainID:   redirect.BlockchainID,
 		Alias:          newSQLNullString(redirect.Alias),
@@ -64,10 +64,10 @@ func extractDBRedirect(redirect *repository.Redirect) *dbRedirect {
 }
 
 // WriteRedirect saves input redirect in the database
-func (d *PostgresDriver) WriteRedirect(redirect *repository.Redirect) (*repository.Redirect, error) {
+func (d *PostgresDriver) WriteRedirect(redirect repository.Redirect) (repository.Redirect, error) {
 	id, err := generateRandomID()
 	if err != nil {
-		return nil, err
+		return repository.Redirect{}, err
 	}
 
 	redirect.ID = id
@@ -78,12 +78,12 @@ func (d *PostgresDriver) WriteRedirect(redirect *repository.Redirect) (*reposito
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return nil, err
+		return repository.Redirect{}, err
 	}
 
 	_, err = tx.NamedExec(insertRedirectScript, insertApp)
 	if err != nil {
-		return nil, err
+		return repository.Redirect{}, err
 	}
 
 	return redirect, tx.Commit()

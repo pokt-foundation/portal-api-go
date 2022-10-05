@@ -75,8 +75,8 @@ func getAppIDs(rawAppIDs sql.NullString) []string {
 	return appIDs
 }
 
-func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
-	return &repository.LoadBalancer{
+func (lb dbLoadBalancer) toLoadBalancer() repository.LoadBalancer {
+	return repository.LoadBalancer{
 		ID:                lb.LbID,
 		Name:              lb.Name.String,
 		UserID:            lb.UserID.String,
@@ -106,7 +106,7 @@ type insertLoadBalancer struct {
 	UpdatedAt         time.Time      `db:"updated_at"`
 }
 
-func extractInsertLoadBalancer(loadBalancer *repository.LoadBalancer) *insertLoadBalancer {
+func extractInsertLoadBalancer(loadBalancer repository.LoadBalancer) *insertLoadBalancer {
 	return &insertLoadBalancer{
 		LbID:              loadBalancer.ID,
 		Name:              newSQLNullString(loadBalancer.Name),
@@ -160,7 +160,7 @@ func convertRepositoryToDBStickinessOptions(id string, options *repository.Stick
 	}
 }
 
-func extractInsertStickinessOptions(lb *repository.LoadBalancer) *insertStickinessOptions {
+func extractInsertStickinessOptions(lb repository.LoadBalancer) *insertStickinessOptions {
 	return &insertStickinessOptions{
 		LbID:       lb.ID,
 		Duration:   newSQLNullString(lb.StickyOptions.Duration),
@@ -175,7 +175,7 @@ type insertLbApps struct {
 	AppID string `db:"app_id"`
 }
 
-func extractInsertLbApps(loadBalancer *repository.LoadBalancer) []*insertLbApps {
+func extractInsertLbApps(loadBalancer repository.LoadBalancer) []*insertLbApps {
 	var inserts []*insertLbApps
 
 	for _, appID := range loadBalancer.ApplicationIDs {
@@ -189,15 +189,15 @@ func extractInsertLbApps(loadBalancer *repository.LoadBalancer) []*insertLbApps 
 }
 
 // ReadLoadBalancers returns all load balancers in the database
-func (d *PostgresDriver) ReadLoadBalancers() ([]*repository.LoadBalancer, error) {
-	var dbLoadBalancers []*dbLoadBalancer
+func (d *PostgresDriver) ReadLoadBalancers() ([]repository.LoadBalancer, error) {
+	var dbLoadBalancers []dbLoadBalancer
 
 	err := d.Select(&dbLoadBalancers, selectLoadBalancers)
 	if err != nil {
 		return nil, err
 	}
 
-	var loadbalancers []*repository.LoadBalancer
+	var loadbalancers []repository.LoadBalancer
 
 	for _, dbLoadBalancer := range dbLoadBalancers {
 		loadbalancers = append(loadbalancers, dbLoadBalancer.toLoadBalancer())
@@ -208,10 +208,10 @@ func (d *PostgresDriver) ReadLoadBalancers() ([]*repository.LoadBalancer, error)
 
 // WriteLoadBalancer saves input load balancer in the database
 // Does not save stickiness configuration
-func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer) (*repository.LoadBalancer, error) {
+func (d *PostgresDriver) WriteLoadBalancer(loadBalancer repository.LoadBalancer) (repository.LoadBalancer, error) {
 	id, err := generateRandomID()
 	if err != nil {
-		return nil, err
+		return repository.LoadBalancer{}, err
 	}
 
 	loadBalancer.ID = id
@@ -230,19 +230,19 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return nil, err
+		return repository.LoadBalancer{}, err
 	}
 
 	_, err = tx.NamedExec(insertLoadBalancerScript, insertLoadBalancer)
 	if err != nil {
-		return nil, err
+		return repository.LoadBalancer{}, err
 	}
 
 	for i := 0; i < len(nullables); i++ {
 		if nullables[i].isNotNull() {
 			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
 			if err != nil {
-				return nil, err
+				return repository.LoadBalancer{}, err
 			}
 		}
 	}
@@ -250,7 +250,7 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 	for _, insert := range insertsLbApps {
 		_, err = tx.NamedExec(insertLbAppsScript, insert)
 		if err != nil {
-			return nil, err
+			return repository.LoadBalancer{}, err
 		}
 	}
 
@@ -258,13 +258,9 @@ func (d *PostgresDriver) WriteLoadBalancer(loadBalancer *repository.LoadBalancer
 }
 
 // UpdateLoadBalancer updates fields available in options in db
-func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate *repository.UpdateLoadBalancer) error {
+func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate repository.UpdateLoadBalancer) error {
 	if id == "" {
 		return ErrMissingID
-	}
-
-	if fieldsToUpdate == nil {
-		return ErrNoFieldsToUpdate
 	}
 
 	tx, err := d.Beginx()
@@ -277,9 +273,9 @@ func (d *PostgresDriver) UpdateLoadBalancer(id string, fieldsToUpdate *repositor
 		return err
 	}
 
-	updates := []*update{}
+	updates := []update{}
 
-	updates = append(updates, &update{
+	updates = append(updates, update{
 		insertScript: insertStickinessOptionsScript,
 		updateScript: updateStickinessOptions,
 		toUpdate:     convertRepositoryToDBStickinessOptions(id, fieldsToUpdate.StickyOptions),

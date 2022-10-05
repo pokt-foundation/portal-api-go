@@ -63,7 +63,7 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	blockchainToSend := &repository.Blockchain{
+	blockchainToSend := repository.Blockchain{
 		ID:                "0062",
 		Altruist:          "https://testaltruist.com",
 		Blockchain:        "ethereum-mainnet",

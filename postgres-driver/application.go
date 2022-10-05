@@ -103,8 +103,8 @@ type dbApplication struct {
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
 
-func (a *dbApplication) toApplication() *repository.Application {
-	return &repository.Application{
+func (a dbApplication) toApplication() repository.Application {
+	return repository.Application{
 		ID:                 a.ApplicationID,
 		UserID:             a.UserID.String,
 		Name:               a.Name.String,
@@ -159,7 +159,7 @@ type insertDBApp struct {
 	UpdatedAt     time.Time      `db:"updated_at"`
 }
 
-func extractInsertDBApp(app *repository.Application) *insertDBApp {
+func extractInsertDBApp(app repository.Application) *insertDBApp {
 	return &insertDBApp{
 		ApplicationID: app.ID,
 		UserID:        newSQLNullString(app.UserID),
@@ -189,7 +189,7 @@ func (i *insertGatewayAAT) isNotNull() bool {
 	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
 }
 
-func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
+func extractInsertGatewayAAT(app repository.Application) *insertGatewayAAT {
 	return &insertGatewayAAT{
 		ApplicationID:   app.ID,
 		Address:         newSQLNullString(app.GatewayAAT.Address),
@@ -266,7 +266,7 @@ func convertRepositoryToDBGatewaySettings(id string, settings *repository.Gatewa
 	}
 }
 
-func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySettings {
+func extractInsertGatewaySettings(app repository.Application) *insertGatewaySettings {
 	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(app.GatewaySettings.WhitelistContracts,
 		app.GatewaySettings.WhitelistMethods)
 
@@ -346,7 +346,7 @@ func (i *insertNotificationSettings) read(appID string, driver *PostgresDriver) 
 	return &settings, nil
 }
 
-func extractInsertNotificationSettings(app *repository.Application) *insertNotificationSettings {
+func extractInsertNotificationSettings(app repository.Application) *insertNotificationSettings {
 	return &insertNotificationSettings{
 		ApplicationID: app.ID,
 		SignedUp:      app.NotificationSettings.SignedUp,
@@ -373,15 +373,15 @@ func convertRepositoryToDBNotificationSettings(id string, settings *repository.N
 }
 
 // ReadApplications returns all applications on the database
-func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
-	var dbApplications []*dbApplication
+func (d *PostgresDriver) ReadApplications() ([]repository.Application, error) {
+	var dbApplications []dbApplication
 
 	err := d.Select(&dbApplications, selectApplications)
 	if err != nil {
 		return nil, err
 	}
 
-	var applications []*repository.Application
+	var applications []repository.Application
 
 	for _, dbApplication := range dbApplications {
 		applications = append(applications, dbApplication.toApplication())
@@ -391,18 +391,18 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 }
 
 // WriteApplication saves input application in the database
-func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
+func (d *PostgresDriver) WriteApplication(app repository.Application) (repository.Application, error) {
 	if !repository.ValidAppStatuses[app.Status] {
-		return nil, ErrInvalidAppStatus
+		return repository.Application{}, ErrInvalidAppStatus
 	}
 
 	if !repository.ValidPayPlanTypes[app.PayPlanType] {
-		return nil, ErrInvalidPayPlanType
+		return repository.Application{}, ErrInvalidPayPlanType
 	}
 
 	id, err := generateRandomID()
 	if err != nil {
-		return nil, err
+		return repository.Application{}, err
 	}
 
 	app.ID = id
@@ -425,19 +425,19 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return nil, err
+		return repository.Application{}, err
 	}
 
 	_, err = tx.NamedExec(insertApplicationScript, insertApp)
 	if err != nil {
-		return nil, err
+		return repository.Application{}, err
 	}
 
 	for i := 0; i < len(nullables); i++ {
 		if nullables[i].isNotNull() {
 			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
 			if err != nil {
-				return nil, err
+				return repository.Application{}, err
 			}
 		}
 	}
@@ -446,13 +446,9 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 }
 
 // UpdateApplication updates fields available in options in db
-func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository.UpdateApplication) error {
+func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate repository.UpdateApplication) error {
 	if id == "" {
 		return ErrMissingID
-	}
-
-	if fieldsToUpdate == nil {
-		return ErrNoFieldsToUpdate
 	}
 
 	if !repository.ValidAppStatuses[fieldsToUpdate.Status] {
@@ -474,15 +470,15 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return err
 	}
 
-	updates := []*update{}
+	updates := []update{}
 
-	updates = append(updates, &update{
+	updates = append(updates, update{
 		insertScript: insertGatewaySettingsScript,
 		updateScript: updateGatewaySettings,
 		toUpdate:     convertRepositoryToDBGatewaySettings(id, fieldsToUpdate.GatewaySettings),
 	})
 
-	updates = append(updates, &update{
+	updates = append(updates, update{
 		insertScript: insertNotificationSettingsScript,
 		updateScript: updateNotificationSettings,
 		toUpdate:     convertRepositoryToDBNotificationSettings(id, fieldsToUpdate.NotificationSettings),
@@ -504,8 +500,8 @@ type updateFirstDateSurpassed struct {
 	UpdatedAt          time.Time `db:"updated_at"`
 }
 
-func (d *PostgresDriver) UpdateFirstDateSurpassed(firstDateSurpassed *repository.UpdateFirstDateSurpassed) error {
-	query, args, err := sqlx.Named(updateFirstDateSurpassedScript, &updateFirstDateSurpassed{
+func (d *PostgresDriver) UpdateFirstDateSurpassed(firstDateSurpassed repository.UpdateFirstDateSurpassed) error {
+	query, args, err := sqlx.Named(updateFirstDateSurpassedScript, updateFirstDateSurpassed{
 		ApplicationIDs:     firstDateSurpassed.ApplicationIDs,
 		FirstDateSurpassed: firstDateSurpassed.FirstDateSurpassed,
 		UpdatedAt:          time.Now(),

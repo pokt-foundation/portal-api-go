@@ -230,7 +230,7 @@ type LoadBalancer struct {
 	GigastakeRedirect bool          `json:"gigastakeRedirect"`
 	StickyOptions     StickyOptions `json:"stickinessOptions"`
 	// TODO: use map[AppID]*Application instead (to speed-up fetchLoadBalancerApplication routine)
-	Applications []*Application
+	Applications []Application
 	// User []*User
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -382,10 +382,10 @@ func buildLoadBalancers(items []loadBalancer, apps map[string]Application) (map[
 	lbs := make(map[string]LoadBalancer)
 	invalid := make(map[string][]string)
 	for _, lb := range items {
-		var verifiedApps []*Application
+		var verifiedApps []Application
 		for _, id := range lb.ApplicationIDs {
 			if app, ok := apps[id]; ok {
-				verifiedApps = append(verifiedApps, &app)
+				verifiedApps = append(verifiedApps, app)
 			} else {
 				invalid[lb.ID] = append(invalid[lb.ID], id)
 			}

@@ -50,8 +50,8 @@ type dbBlockchain struct {
 	UpdatedAt         time.Time      `db:"updated_at"`
 }
 
-func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
-	return &repository.Blockchain{
+func (b dbBlockchain) toBlockchain() repository.Blockchain {
+	return repository.Blockchain{
 		ID:                b.BlockchainID,
 		Altruist:          b.Altruist.String,
 		Blockchain:        b.Blockchain.String,
@@ -96,15 +96,15 @@ type insertDBBlockchain struct {
 }
 
 // ReadBlockchains returns all blockchains on the database
-func (d *PostgresDriver) ReadBlockchains() ([]*repository.Blockchain, error) {
-	var dbBlockchains []*dbBlockchain
+func (d *PostgresDriver) ReadBlockchains() ([]repository.Blockchain, error) {
+	var dbBlockchains []dbBlockchain
 
 	err := d.Select(&dbBlockchains, selectBlockchainsScript)
 	if err != nil {
 		return nil, err
 	}
 
-	var blockchains []*repository.Blockchain
+	var blockchains []repository.Blockchain
 
 	for _, dbBlockchain := range dbBlockchains {
 		blockchains = append(blockchains, dbBlockchain.toBlockchain())
@@ -113,8 +113,8 @@ func (d *PostgresDriver) ReadBlockchains() ([]*repository.Blockchain, error) {
 	return blockchains, nil
 }
 
-func extractInsertDBBlockchain(blockchain *repository.Blockchain) *insertDBBlockchain {
-	return &insertDBBlockchain{
+func extractInsertDBBlockchain(blockchain repository.Blockchain) insertDBBlockchain {
+	return insertDBBlockchain{
 		BlockchainID:      blockchain.ID,
 		Altruist:          newSQLNullString(blockchain.Altruist),
 		Blockchain:        newSQLNullString(blockchain.Blockchain),
@@ -145,7 +145,7 @@ func (i *insertSyncCheckOptions) isNotNull() bool {
 	return i.SyncCheck.Valid || i.Body.Valid || i.Path.Valid || i.ResultKey.Valid || i.Allowance.Valid
 }
 
-func extractInsertSyncCheckOptions(blockchain *repository.Blockchain) *insertSyncCheckOptions {
+func extractInsertSyncCheckOptions(blockchain repository.Blockchain) *insertSyncCheckOptions {
 	return &insertSyncCheckOptions{
 		BlockchainID: blockchain.ID,
 		SyncCheck:    newSQLNullString(blockchain.SyncCheck),
@@ -157,7 +157,7 @@ func extractInsertSyncCheckOptions(blockchain *repository.Blockchain) *insertSyn
 }
 
 // WriteBlockchain saves input blockchain in the database
-func (d *PostgresDriver) WriteBlockchain(blockchain *repository.Blockchain) (*repository.Blockchain, error) {
+func (d *PostgresDriver) WriteBlockchain(blockchain repository.Blockchain) (repository.Blockchain, error) {
 	blockchain.CreatedAt = time.Now()
 	blockchain.UpdatedAt = time.Now()
 
@@ -171,19 +171,19 @@ func (d *PostgresDriver) WriteBlockchain(blockchain *repository.Blockchain) (*re
 
 	tx, err := d.Beginx()
 	if err != nil {
-		return nil, err
+		return repository.Blockchain{}, err
 	}
 
 	_, err = tx.NamedExec(insertBlockchainScript, insertApp)
 	if err != nil {
-		return nil, err
+		return repository.Blockchain{}, err
 	}
 
 	for i := 0; i < len(nullables); i++ {
 		if nullables[i].isNotNull() {
 			_, err = tx.NamedExec(nullablesScripts[i], nullables[i])
 			if err != nil {
-				return nil, err
+				return repository.Blockchain{}, err
 			}
 		}
 	}
@@ -207,7 +207,7 @@ func (d *PostgresDriver) ActivateBlockchain(id string, active bool) error {
 		return err
 	}
 
-	update := &activateDBBlockchain{
+	update := activateDBBlockchain{
 		BlockchainID: id,
 		Active:       active,
 		UpdatedAt:    time.Now(),

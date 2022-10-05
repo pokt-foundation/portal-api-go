@@ -77,7 +77,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	appToSend := &repository.Application{
+	appToSend := repository.Application{
 		ID:           "60ddc61b6e29c3003378361D",
 		UserID:       "60ddc61b6e29c3003378361D",
 		Name:         "klk",
@@ -230,7 +230,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		Full:          true,
 	}
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:                 "pablo",
 		Status:               repository.Orphaned,
 		PayPlanType:          repository.PayAsYouGoV0,
@@ -254,7 +254,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		PayPlanType:     repository.PayAsYouGoV0,
@@ -273,7 +273,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:                 "pablo",
 		Status:               repository.Orphaned,
 		PayPlanType:          repository.PayAsYouGoV0,
@@ -288,7 +288,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:        "pablo",
 		Status:      repository.Orphaned,
 		PayPlanType: repository.PayAsYouGoV0,
@@ -300,7 +300,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in applications"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		PayPlanType:     repository.PayAsYouGoV0,
@@ -315,7 +315,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnError(errors.New("error reading gateway_settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		PayPlanType:     repository.PayAsYouGoV0,
@@ -338,7 +338,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		PayPlanType:     repository.PayAsYouGoV0,
@@ -358,7 +358,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnError(errors.New("error in inserting settings"))
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Name:            "pablo",
 		Status:          repository.Orphaned,
 		PayPlanType:     repository.PayAsYouGoV0,
@@ -366,18 +366,15 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	})
 	c.EqualError(err, "error in inserting settings")
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", nil)
-	c.Equal(ErrNoFieldsToUpdate, err)
-
-	err = driver.UpdateApplication("", nil)
+	err = driver.UpdateApplication("", repository.UpdateApplication{})
 	c.Equal(ErrMissingID, err)
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Status: "wrong",
 	})
 	c.Equal(ErrInvalidAppStatus, err)
 
-	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", repository.UpdateApplication{
 		Status:      repository.Orphaned,
 		PayPlanType: "wrong",
 	})
@@ -423,7 +420,7 @@ func TestPostgresDriver_UpdateFirstDateSurpassed(t *testing.T) {
 	mock.ExpectExec("UPDATE applications").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = driver.UpdateFirstDateSurpassed(&repository.UpdateFirstDateSurpassed{
+	err = driver.UpdateFirstDateSurpassed(repository.UpdateFirstDateSurpassed{
 		FirstDateSurpassed: time.Now(),
 		ApplicationIDs:     []string{"60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3"},
 	})
@@ -432,7 +429,7 @@ func TestPostgresDriver_UpdateFirstDateSurpassed(t *testing.T) {
 	mock.ExpectExec("UPDATE applications").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3").
 		WillReturnError(errors.New("dummy error"))
 
-	err = driver.UpdateFirstDateSurpassed(&repository.UpdateFirstDateSurpassed{
+	err = driver.UpdateFirstDateSurpassed(repository.UpdateFirstDateSurpassed{
 		FirstDateSurpassed: time.Now(),
 		ApplicationIDs:     []string{"60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3"},
 	})

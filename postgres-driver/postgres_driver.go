@@ -11,8 +11,6 @@ import (
 )
 
 var (
-	// ErrNoFieldsToUpdate error when there are no fields to update
-	ErrNoFieldsToUpdate = errors.New("no fields to update")
 	// ErrMissingID error when ID is missing
 	ErrMissingID = errors.New("missing id")
 
@@ -112,7 +110,7 @@ type update struct {
 	toUpdate     updatable
 }
 
-func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
+func (d *PostgresDriver) doUpdate(id string, update update, tx *sqlx.Tx) error {
 	if !update.toUpdate.isUpdatable() {
 		return nil
 	}
