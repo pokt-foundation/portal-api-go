@@ -150,12 +150,12 @@ type GatewaySettings struct {
 }
 
 type WhitelistContract struct {
-	BlockchainID string   `json:"blockchainId"`
+	BlockchainID string   `json:"blockchainID"`
 	Contracts    []string `json:"contracts"`
 }
 
 type WhitelistMethod struct {
-	BlockchainID string   `json:"blockchainId"`
+	BlockchainID string   `json:"blockchainID"`
 	Methods      []string `json:"methods"`
 }
 
