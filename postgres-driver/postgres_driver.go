@@ -21,6 +21,8 @@ var (
 
 // PostgresDriver struct handler for PostgresDB related functions
 type PostgresDriver struct {
+	Notification chan *Notification
+	connString   string
 	*sqlx.DB
 }
 
@@ -31,9 +33,15 @@ func NewPostgresDriverFromConnectionString(connectionString string) (*PostgresDr
 		return nil, err
 	}
 
-	return &PostgresDriver{
-		DB: db,
-	}, nil
+	driver := &PostgresDriver{
+		connString:   connectionString,
+		Notification: make(chan *Notification, 32),
+		DB:           db,
+	}
+
+	go driver.StartListener()
+
+	return driver, nil
 }
 
 // NewPostgresDriverFromSQLDBInstance returns PostgresDriver instance from sdl.DB instance

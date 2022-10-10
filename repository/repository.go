@@ -131,6 +131,7 @@ type UpdateFirstDateSurpassed struct {
 }
 
 type GatewayAAT struct {
+	ID                   string `json:"id,omitempty"`
 	Address              string `json:"address"`
 	ApplicationPublicKey string `json:"applicationPublicKey"`
 	ApplicationSignature string `json:"applicationSignature"`
@@ -140,6 +141,7 @@ type GatewayAAT struct {
 }
 
 type GatewaySettings struct {
+	ID                   string              `json:"id,omitempty"`
 	SecretKey            string              `json:"secretKey"`
 	SecretKeyRequired    bool                `json:"secretKeyRequired"`
 	WhitelistOrigins     []string            `json:"whitelistOrigins,omitempty"`
@@ -160,11 +162,12 @@ type WhitelistMethod struct {
 }
 
 type NotificationSettings struct {
-	SignedUp      bool `json:"signedUp"`
-	Quarter       bool `json:"quarter"`
-	Half          bool `json:"half"`
-	ThreeQuarters bool `json:"threeQuarters"`
-	Full          bool `json:"full"`
+	ID            string `json:"id,omitempty"`
+	SignedUp      bool   `json:"signedUp"`
+	Quarter       bool   `json:"quarter"`
+	Half          bool   `json:"half"`
+	ThreeQuarters bool   `json:"threeQuarters"`
+	Full          bool   `json:"full"`
 }
 
 type Blockchain struct {
@@ -244,6 +247,7 @@ type UpdateLoadBalancer struct {
 }
 
 type StickyOptions struct {
+	ID            string   `json:"id,omitempty"`
 	Duration      string   `json:"duration"`
 	StickyOrigins []string `json:"stickyOrigins"`
 	StickyMax     int      `json:"stickyMax"`

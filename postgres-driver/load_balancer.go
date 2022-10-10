@@ -95,6 +95,30 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 	}
 }
 
+type dbLoadBalancerJSON struct {
+	LbID              string    `json:"lb_id"`
+	Name              string    `json:"name"`
+	UserID            string    `json:"user_id"`
+	RequestTimeout    int       `json:"request_timeout"`
+	Gigastake         bool      `json:"gigastake"`
+	GigastakeRedirect bool      `json:"gigastake_redirect"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+func (j dbLoadBalancerJSON) toOutput() any {
+	return &repository.LoadBalancer{
+		ID:                j.LbID,
+		Name:              j.Name,
+		UserID:            j.UserID,
+		RequestTimeout:    j.RequestTimeout,
+		Gigastake:         j.Gigastake,
+		GigastakeRedirect: j.GigastakeRedirect,
+		CreatedAt:         j.CreatedAt,
+		UpdatedAt:         j.UpdatedAt,
+	}
+}
+
 type insertLoadBalancer struct {
 	LbID              string         `db:"lb_id"`
 	Name              sql.NullString `db:"name"`
@@ -119,6 +143,24 @@ func extractInsertLoadBalancer(loadBalancer *repository.LoadBalancer) *insertLoa
 	}
 }
 
+type dbStickinessOptionsJSON struct {
+	LbID       string   `json:"lb_id"`
+	Duration   string   `json:"duration"`
+	Origins    []string `json:"origins"`
+	StickyMax  int      `json:"sticky_max"`
+	Stickiness bool     `json:"stickiness"`
+}
+
+func (j dbStickinessOptionsJSON) toOutput() any {
+	return &repository.StickyOptions{
+		ID:            j.LbID,
+		Duration:      j.Duration,
+		StickyOrigins: j.Origins,
+		StickyMax:     j.StickyMax,
+		Stickiness:    j.Stickiness,
+	}
+}
+
 type insertStickinessOptions struct {
 	LbID       string         `db:"lb_id"`
 	Duration   sql.NullString `db:"duration"`
@@ -128,7 +170,7 @@ type insertStickinessOptions struct {
 }
 
 func (i *insertStickinessOptions) isNotNull() bool {
-	return i.Duration.Valid && len(i.Origins) > 0 && i.StickyMax.Valid
+	return i.Duration.Valid || len(i.Origins) > 0 || i.StickyMax.Valid
 }
 
 func (i *insertStickinessOptions) isUpdatable() bool {
