@@ -155,7 +155,7 @@ type WhitelistContract struct {
 }
 
 type WhitelistMethod struct {
-	BlockchainID string
+	BlockchainID string   `json:"blockchainID"`
 	Methods      []string `json:"methods"`
 }
 
