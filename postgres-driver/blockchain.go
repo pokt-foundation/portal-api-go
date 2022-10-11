@@ -95,7 +95,7 @@ type dbBlockchainJSON struct {
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
-func (j dbBlockchainJSON) toOutput() any {
+func (j dbBlockchainJSON) toOutput() *repository.Blockchain {
 	return &repository.Blockchain{
 		ID:                j.BlockchainID,
 		Altruist:          j.Altruist,
@@ -181,7 +181,7 @@ type dbSyncCheckOptionsJSON struct {
 	Allowance    int    `json:"allowance"`
 }
 
-func (j dbSyncCheckOptionsJSON) toOutput() any {
+func (j dbSyncCheckOptionsJSON) toOutput() *repository.SyncCheckOptions {
 	return &repository.SyncCheckOptions{
 		BlockchainID: j.BlockchainID,
 		Body:         j.Body,

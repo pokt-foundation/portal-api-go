@@ -2,8 +2,6 @@ package postgresdriver
 
 import (
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/lib/pq"
 )
@@ -29,79 +27,112 @@ const (
 	ActionUpdate Action = "UPDATE"
 )
 
-type notification struct {
-	Table  Table          `json:"table"`
-	Action Action         `json:"action"`
-	Data   map[string]any `json:"data"`
-}
-
 type Notification struct {
-	Table  Table
-	Action Action
-	Data   any
+	Table  Table  `json:"table"`
+	Action Action `json:"action"`
+	Data   any    `json:"data"`
 }
 
-type input interface {
-	toOutput() any
+type Listener interface {
+	NotificationChannel() <-chan *pq.Notification
+	Listen(channel string) error
 }
 
-func (n *notification) toNotificationWithType(inputType input) *Notification {
+func (n *Notification) parseApplicationNotification() {
 	rawData, _ := json.Marshal(n.Data)
-
-	_ = json.Unmarshal(rawData, &inputType)
-
-	return &Notification{
-		Table:  n.Table,
-		Action: n.Action,
-		Data:   inputType.toOutput(),
-	}
+	var dbApp dbAppJSON
+	_ = json.Unmarshal(rawData, &dbApp)
+	n.Data = dbApp.toOutput()
 }
 
-func (n *notification) toNotification() *Notification {
+func (n *Notification) parseBlockchainNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbBlockchain dbBlockchainJSON
+	_ = json.Unmarshal(rawData, &dbBlockchain)
+	n.Data = dbBlockchain.toOutput()
+}
+
+func (n *Notification) parseGatewayAATNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbGatewayAAT dbGatewayAATJSON
+	_ = json.Unmarshal(rawData, &dbGatewayAAT)
+	n.Data = dbGatewayAAT.toOutput()
+}
+
+func (n *Notification) parseGatewaySettingsNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbGatewaySettings dbGatewaySettingsJSON
+	_ = json.Unmarshal(rawData, &dbGatewaySettings)
+	n.Data = dbGatewaySettings.toOutput()
+}
+
+func (n *Notification) parseLoadBalancerNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbLoadBalancer dbLoadBalancerJSON
+	_ = json.Unmarshal(rawData, &dbLoadBalancer)
+	n.Data = dbLoadBalancer.toOutput()
+}
+
+func (n *Notification) parseNotificationSettingsNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbNotificationSettings dbNotificationSettingsJSON
+	_ = json.Unmarshal(rawData, &dbNotificationSettings)
+	n.Data = dbNotificationSettings.toOutput()
+}
+
+func (n *Notification) parseRedirectNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbRedirect dbRedirectJSON
+	_ = json.Unmarshal(rawData, &dbRedirect)
+	n.Data = dbRedirect.toOutput()
+}
+
+func (n *Notification) parseStickinessOptionsNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbStickinessOpts dbStickinessOptionsJSON
+	_ = json.Unmarshal(rawData, &dbStickinessOpts)
+	n.Data = dbStickinessOpts.toOutput()
+}
+
+func (n *Notification) parseSyncOptionsNotification() {
+	rawData, _ := json.Marshal(n.Data)
+	var dbSyncOpts dbSyncCheckOptionsJSON
+	_ = json.Unmarshal(rawData, &dbSyncOpts)
+	n.Data = dbSyncOpts.toOutput()
+}
+
+func (n *Notification) parseNotification() {
 	switch n.Table {
 	case TableApplications:
-		return n.toNotificationWithType(dbAppJSON{})
+		n.parseApplicationNotification()
 	case TableBlockchains:
-		return n.toNotificationWithType(dbBlockchainJSON{})
+		n.parseBlockchainNotification()
 	case TableGatewayAAT:
-		return n.toNotificationWithType(dbGatewayAATJSON{})
+		n.parseGatewayAATNotification()
 	case TableGatewaySettings:
-		return n.toNotificationWithType(dbGatewaySettingsJSON{})
+		n.parseGatewaySettingsNotification()
 	case TableLoadBalancers:
-		return n.toNotificationWithType(dbLoadBalancerJSON{})
+		n.parseLoadBalancerNotification()
 	case TableNotificationSettings:
-		return n.toNotificationWithType(dbNotificationSettingsJSON{})
+		n.parseNotificationSettingsNotification()
 	case TableRedirects:
-		return n.toNotificationWithType(dbRedirectJSON{})
+		n.parseRedirectNotification()
 	case TableStickinessOptions:
-		return n.toNotificationWithType(dbStickinessOptionsJSON{})
+		n.parseStickinessOptionsNotification()
 	case TableSyncCheckOptions:
-		return n.toNotificationWithType(dbSyncCheckOptionsJSON{})
+		n.parseSyncOptionsNotification()
 	}
-
-	return nil
 }
 
-func (d *PostgresDriver) StartListener() Notification {
-	reportProblem := func(ev pq.ListenerEventType, err error) {
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-
-	listener := pq.NewListener(d.connString, 10*time.Second, time.Minute, reportProblem)
-	err := listener.Listen("events")
-	if err != nil {
-		panic(err)
-	}
-
+func (d *PostgresDriver) Listen() {
 	for {
-		n := <-listener.Notify
-		var notification notification
+		n := <-d.listener.NotificationChannel()
+		var notification Notification
 		err := json.Unmarshal([]byte(n.Extra), &notification)
 		if err != nil {
 			panic(err)
 		}
-		d.Notification <- notification.toNotification()
+		notification.parseNotification()
+		d.Notification <- &notification
 	}
 }

@@ -159,7 +159,7 @@ type dbAppJSON struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-func (j dbAppJSON) toOutput() any {
+func (j dbAppJSON) toOutput() *repository.Application {
 	return &repository.Application{
 		ID:           j.ApplicationID,
 		UserID:       j.UserID,
@@ -215,7 +215,7 @@ type dbGatewayAATJSON struct {
 	Version         string `json:"version"`
 }
 
-func (j dbGatewayAATJSON) toOutput() any {
+func (j dbGatewayAATJSON) toOutput() *repository.GatewayAAT {
 	return &repository.GatewayAAT{
 		ID:                   j.ApplicationID,
 		Address:              j.Address,
@@ -264,7 +264,7 @@ type dbGatewaySettingsJSON struct {
 	WhitelistBlockchains []string `json:"whitelist_blockchains"`
 }
 
-func (j dbGatewaySettingsJSON) toOutput() any {
+func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
 	return &repository.GatewaySettings{
 		ID:                   j.ApplicationID,
 		SecretKey:            j.SecretKey,
@@ -411,7 +411,7 @@ type dbNotificationSettingsJSON struct {
 	Full          bool   `json:"on_full"`
 }
 
-func (j dbNotificationSettingsJSON) toOutput() any {
+func (j dbNotificationSettingsJSON) toOutput() *repository.NotificationSettings {
 	return &repository.NotificationSettings{
 		ID:            j.ApplicationID,
 		SignedUp:      j.SignedUp,

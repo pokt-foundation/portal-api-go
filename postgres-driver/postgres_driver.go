@@ -22,34 +22,50 @@ var (
 // PostgresDriver struct handler for PostgresDB related functions
 type PostgresDriver struct {
 	Notification chan *Notification
-	connString   string
+	listener     Listener
 	*sqlx.DB
 }
 
 // NewPostgresDriverFromConnectionString returns PostgresDriver instance from connection string
-func NewPostgresDriverFromConnectionString(connectionString string) (*PostgresDriver, error) {
+func NewPostgresDriverFromConnectionString(connectionString string, listener Listener) (*PostgresDriver, error) {
 	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
 
 	driver := &PostgresDriver{
-		connString:   connectionString,
 		Notification: make(chan *Notification, 32),
+		listener:     listener,
 		DB:           db,
 	}
 
-	go driver.StartListener()
+	err = driver.listener.Listen("events")
+	if err != nil {
+		return nil, err
+	}
+
+	go driver.Listen()
 
 	return driver, nil
 }
 
 // NewPostgresDriverFromSQLDBInstance returns PostgresDriver instance from sdl.DB instance
 // mostly used for mocking tests
-func NewPostgresDriverFromSQLDBInstance(db *sql.DB) *PostgresDriver {
-	return &PostgresDriver{
-		DB: sqlx.NewDb(db, "postgres"),
+func NewPostgresDriverFromSQLDBInstance(db *sql.DB, listener Listener) *PostgresDriver {
+	driver := &PostgresDriver{
+		Notification: make(chan *Notification, 32),
+		listener:     listener,
+		DB:           sqlx.NewDb(db, "postgres"),
 	}
+
+	err := driver.listener.Listen("events")
+	if err != nil {
+		panic(err)
+	}
+
+	go driver.Listen()
+
+	return driver
 }
 
 func newSQLNullString(value string) sql.NullString {

@@ -106,7 +106,7 @@ type dbLoadBalancerJSON struct {
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
-func (j dbLoadBalancerJSON) toOutput() any {
+func (j dbLoadBalancerJSON) toOutput() *repository.LoadBalancer {
 	return &repository.LoadBalancer{
 		ID:                j.LbID,
 		Name:              j.Name,
@@ -151,7 +151,7 @@ type dbStickinessOptionsJSON struct {
 	Stickiness bool     `json:"stickiness"`
 }
 
-func (j dbStickinessOptionsJSON) toOutput() any {
+func (j dbStickinessOptionsJSON) toOutput() *repository.StickyOptions {
 	return &repository.StickyOptions{
 		ID:            j.LbID,
 		Duration:      j.Duration,

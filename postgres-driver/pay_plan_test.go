@@ -22,7 +22,7 @@ func TestPostgresDriver_ReadPayPlans(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM pay_plans$").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	payPlans, err := driver.ReadPayPlans()
 	c.NoError(err)

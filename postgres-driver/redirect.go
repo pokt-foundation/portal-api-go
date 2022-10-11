@@ -25,7 +25,7 @@ type dbRedirectJSON struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-func (j dbRedirectJSON) toOutput() any {
+func (j dbRedirectJSON) toOutput() *repository.Redirect {
 	return &repository.Redirect{
 		BlockchainID:   j.BlockchainID,
 		Alias:          j.Alias,
