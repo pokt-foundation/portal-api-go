@@ -411,3 +411,30 @@ func loadData(file string, data interface{}) error {
 
 	return json.Unmarshal(contents, data)
 }
+
+type Table string
+
+const (
+	TableApplications         Table = "applications"
+	TableBlockchains          Table = "blockchains"
+	TableGatewayAAT           Table = "gateway_aat"
+	TableGatewaySettings      Table = "gateway_settings"
+	TableLoadBalancers        Table = "loadbalancers"
+	TableNotificationSettings Table = "notification_settings"
+	TableRedirects            Table = "redirects"
+	TableStickinessOptions    Table = "stickiness_options"
+	TableSyncCheckOptions     Table = "sync_check_options"
+)
+
+type Action string
+
+const (
+	ActionInsert Action = "INSERT"
+	ActionUpdate Action = "UPDATE"
+)
+
+type Notification struct {
+	Table  Table  `json:"table"`
+	Action Action `json:"action"`
+	Data   any    `json:"data"`
+}

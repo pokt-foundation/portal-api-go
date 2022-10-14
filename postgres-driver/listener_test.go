@@ -13,7 +13,7 @@ func TestPostgresDriver_ListenApplication(t *testing.T) {
 	listenerMock := NewListenerMock()
 	driver := NewPostgresDriverFromSQLDBInstance(nil, listenerMock)
 
-	listenerMock.MockEvent(ActionInsert, ActionUpdate, &repository.Application{
+	listenerMock.MockEvent(repository.ActionInsert, repository.ActionUpdate, &repository.Application{
 		ID: "321",
 		GatewayAAT: repository.GatewayAAT{
 			Address: "123",
@@ -26,30 +26,36 @@ func TestPostgresDriver_ListenApplication(t *testing.T) {
 		},
 	})
 
-	n := <-driver.Notification
-	c.Equal(ActionInsert, n.Action)
-	c.Equal(TableApplications, n.Table)
-	app := n.Data.(*repository.Application)
+	nMap := make(map[repository.Table]*repository.Notification, 4)
+
+	n := <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	n = <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	n = <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	n = <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	c.Equal(repository.ActionInsert, nMap[repository.TableApplications].Action)
+	app := nMap[repository.TableApplications].Data.(*repository.Application)
 	c.Equal("321", app.ID)
 
-	n = <-driver.Notification
-	c.Equal(ActionUpdate, n.Action)
-	c.Equal(TableGatewayAAT, n.Table)
-	aat := n.Data.(*repository.GatewayAAT)
+	c.Equal(repository.ActionUpdate, nMap[repository.TableGatewayAAT].Action)
+	aat := nMap[repository.TableGatewayAAT].Data.(*repository.GatewayAAT)
 	c.Equal("321", aat.ID)
 	c.Equal("123", aat.Address)
 
-	n = <-driver.Notification
-	c.Equal(ActionUpdate, n.Action)
-	c.Equal(TableGatewaySettings, n.Table)
-	gSettings := n.Data.(*repository.GatewaySettings)
+	c.Equal(repository.ActionUpdate, nMap[repository.TableGatewaySettings].Action)
+	gSettings := nMap[repository.TableGatewaySettings].Data.(*repository.GatewaySettings)
 	c.Equal("321", gSettings.ID)
 	c.Equal("123", gSettings.SecretKey)
 
-	n = <-driver.Notification
-	c.Equal(ActionUpdate, n.Action)
-	c.Equal(TableNotificationSettings, n.Table)
-	nSettings := n.Data.(*repository.NotificationSettings)
+	c.Equal(repository.ActionUpdate, nMap[repository.TableNotificationSettings].Action)
+	nSettings := nMap[repository.TableNotificationSettings].Data.(*repository.NotificationSettings)
 	c.Equal("321", nSettings.ID)
 	c.True(nSettings.Full)
 }
@@ -60,7 +66,7 @@ func TestPostgresDriver_ListenBlockchain(t *testing.T) {
 	listenerMock := NewListenerMock()
 	driver := NewPostgresDriverFromSQLDBInstance(nil, listenerMock)
 
-	listenerMock.MockEvent(ActionInsert, ActionUpdate, &repository.Blockchain{
+	listenerMock.MockEvent(repository.ActionInsert, repository.ActionUpdate, &repository.Blockchain{
 		ID: "0021",
 		SyncCheckOptions: repository.SyncCheckOptions{
 			BlockchainID: "0021",
@@ -68,16 +74,20 @@ func TestPostgresDriver_ListenBlockchain(t *testing.T) {
 		},
 	})
 
-	n := <-driver.Notification
-	c.Equal(ActionInsert, n.Action)
-	c.Equal(TableBlockchains, n.Table)
-	blockchain := n.Data.(*repository.Blockchain)
+	nMap := make(map[repository.Table]*repository.Notification, 2)
+
+	n := <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	n = <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	c.Equal(repository.ActionInsert, nMap[repository.TableBlockchains].Action)
+	blockchain := nMap[repository.TableBlockchains].Data.(*repository.Blockchain)
 	c.Equal("0021", blockchain.ID)
 
-	n = <-driver.Notification
-	c.Equal(ActionUpdate, n.Action)
-	c.Equal(TableSyncCheckOptions, n.Table)
-	syncOpts := n.Data.(*repository.SyncCheckOptions)
+	c.Equal(repository.ActionUpdate, nMap[repository.TableSyncCheckOptions].Action)
+	syncOpts := nMap[repository.TableSyncCheckOptions].Data.(*repository.SyncCheckOptions)
 	c.Equal("0021", syncOpts.BlockchainID)
 	c.Equal("yeh", syncOpts.Body)
 }
@@ -88,7 +98,7 @@ func TestPostgresDriver_ListenLoadBalancer(t *testing.T) {
 	listenerMock := NewListenerMock()
 	driver := NewPostgresDriverFromSQLDBInstance(nil, listenerMock)
 
-	listenerMock.MockEvent(ActionInsert, ActionUpdate, &repository.LoadBalancer{
+	listenerMock.MockEvent(repository.ActionInsert, repository.ActionUpdate, &repository.LoadBalancer{
 		ID: "123",
 		StickyOptions: repository.StickyOptions{
 			StickyOrigins: []string{"oahu"},
@@ -96,16 +106,20 @@ func TestPostgresDriver_ListenLoadBalancer(t *testing.T) {
 		},
 	})
 
-	n := <-driver.Notification
-	c.Equal(ActionInsert, n.Action)
-	c.Equal(TableLoadBalancers, n.Table)
-	lb := n.Data.(*repository.LoadBalancer)
+	nMap := make(map[repository.Table]*repository.Notification, 2)
+
+	n := <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	n = <-driver.NotificationChannel()
+	nMap[n.Table] = n
+
+	c.Equal(repository.ActionInsert, nMap[repository.TableLoadBalancers].Action)
+	lb := nMap[repository.TableLoadBalancers].Data.(*repository.LoadBalancer)
 	c.Equal("123", lb.ID)
 
-	n = <-driver.Notification
-	c.Equal(ActionUpdate, n.Action)
-	c.Equal(TableStickinessOptions, n.Table)
-	sOpts := n.Data.(*repository.StickyOptions)
+	c.Equal(repository.ActionUpdate, nMap[repository.TableStickinessOptions].Action)
+	sOpts := nMap[repository.TableStickinessOptions].Data.(*repository.StickyOptions)
 	c.Equal("123", sOpts.ID)
 	c.Equal([]string{"oahu"}, sOpts.StickyOrigins)
 	c.True(sOpts.Stickiness)
@@ -117,13 +131,13 @@ func TestPostgresDriver_ListenRedirect(t *testing.T) {
 	listenerMock := NewListenerMock()
 	driver := NewPostgresDriverFromSQLDBInstance(nil, listenerMock)
 
-	listenerMock.MockEvent(ActionInsert, ActionUpdate, &repository.Redirect{
+	listenerMock.MockEvent(repository.ActionInsert, repository.ActionUpdate, &repository.Redirect{
 		BlockchainID: "0021",
 	})
 
-	n := <-driver.Notification
-	c.Equal(ActionInsert, n.Action)
-	c.Equal(TableRedirects, n.Table)
+	n := <-driver.NotificationChannel()
+	c.Equal(repository.ActionInsert, n.Action)
+	c.Equal(repository.TableRedirects, n.Table)
 	redirect := n.Data.(*repository.Redirect)
 	c.Equal("0021", redirect.BlockchainID)
 }
@@ -133,5 +147,5 @@ func TestPostgresDriver_ListenPanic(t *testing.T) {
 
 	listenerMock := NewListenerMock()
 
-	c.Panics(func() { listenerMock.MockEvent(ActionInsert, ActionUpdate, "dummy") })
+	c.Panics(func() { listenerMock.MockEvent(repository.ActionInsert, repository.ActionUpdate, "dummy") })
 }

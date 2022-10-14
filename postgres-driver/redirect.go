@@ -17,12 +17,12 @@ const (
 )
 
 type dbRedirectJSON struct {
-	BlockchainID   string    `json:"blockchain_id"`
-	Alias          string    `json:"alias"`
-	LoadBalancerID string    `json:"loadbalancer"`
-	Domain         string    `json:"domain"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	BlockchainID   string `json:"blockchain_id"`
+	Alias          string `json:"alias"`
+	LoadBalancerID string `json:"loadbalancer"`
+	Domain         string `json:"domain"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
 }
 
 func (j dbRedirectJSON) toOutput() *repository.Redirect {
@@ -31,8 +31,8 @@ func (j dbRedirectJSON) toOutput() *repository.Redirect {
 		Alias:          j.Alias,
 		LoadBalancerID: j.LoadBalancerID,
 		Domain:         j.Domain,
-		CreatedAt:      j.CreatedAt,
-		UpdatedAt:      j.UpdatedAt,
+		CreatedAt:      psqlDateToTime(j.CreatedAt),
+		UpdatedAt:      psqlDateToTime(j.UpdatedAt),
 	}
 }
 

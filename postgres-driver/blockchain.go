@@ -77,22 +77,22 @@ func (b *dbBlockchain) toBlockchain() *repository.Blockchain {
 }
 
 type dbBlockchainJSON struct {
-	BlockchainID      string    `json:"blockchain_id"`
-	Altruist          string    `json:"altruist"`
-	Blockchain        string    `json:"blockchain"`
-	ChainID           string    `json:"chain_id"`
-	ChainIDCheck      string    `json:"chain_id_check"`
-	ChainPath         string    `json:"path"`
-	Description       string    `json:"description"`
-	EnforceResult     string    `json:"enforce_result"`
-	Network           string    `json:"network"`
-	Ticker            string    `json:"ticker"`
-	BlockchainAliases []string  `json:"blockchain_aliases"`
-	LogLimitBlocks    int       `json:"log_limit_blocks"`
-	RequestTimeout    int       `json:"request_timeout"`
-	Active            bool      `json:"active"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	BlockchainID      string   `json:"blockchain_id"`
+	Altruist          string   `json:"altruist"`
+	Blockchain        string   `json:"blockchain"`
+	ChainID           string   `json:"chain_id"`
+	ChainIDCheck      string   `json:"chain_id_check"`
+	ChainPath         string   `json:"path"`
+	Description       string   `json:"description"`
+	EnforceResult     string   `json:"enforce_result"`
+	Network           string   `json:"network"`
+	Ticker            string   `json:"ticker"`
+	BlockchainAliases []string `json:"blockchain_aliases"`
+	LogLimitBlocks    int      `json:"log_limit_blocks"`
+	RequestTimeout    int      `json:"request_timeout"`
+	Active            bool     `json:"active"`
+	CreatedAt         string   `json:"created_at"`
+	UpdatedAt         string   `json:"updated_at"`
 }
 
 func (j dbBlockchainJSON) toOutput() *repository.Blockchain {
@@ -111,8 +111,8 @@ func (j dbBlockchainJSON) toOutput() *repository.Blockchain {
 		LogLimitBlocks:    j.LogLimitBlocks,
 		RequestTimeout:    j.RequestTimeout,
 		Active:            j.Active,
-		CreatedAt:         j.CreatedAt,
-		UpdatedAt:         j.UpdatedAt,
+		CreatedAt:         psqlDateToTime(j.CreatedAt),
+		UpdatedAt:         psqlDateToTime(j.UpdatedAt),
 	}
 }
 

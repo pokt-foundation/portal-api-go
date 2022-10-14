@@ -96,14 +96,14 @@ func (lb *dbLoadBalancer) toLoadBalancer() *repository.LoadBalancer {
 }
 
 type dbLoadBalancerJSON struct {
-	LbID              string    `json:"lb_id"`
-	Name              string    `json:"name"`
-	UserID            string    `json:"user_id"`
-	RequestTimeout    int       `json:"request_timeout"`
-	Gigastake         bool      `json:"gigastake"`
-	GigastakeRedirect bool      `json:"gigastake_redirect"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	LbID              string `json:"lb_id"`
+	Name              string `json:"name"`
+	UserID            string `json:"user_id"`
+	RequestTimeout    int    `json:"request_timeout"`
+	Gigastake         bool   `json:"gigastake"`
+	GigastakeRedirect bool   `json:"gigastake_redirect"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
 }
 
 func (j dbLoadBalancerJSON) toOutput() *repository.LoadBalancer {
@@ -114,8 +114,8 @@ func (j dbLoadBalancerJSON) toOutput() *repository.LoadBalancer {
 		RequestTimeout:    j.RequestTimeout,
 		Gigastake:         j.Gigastake,
 		GigastakeRedirect: j.GigastakeRedirect,
-		CreatedAt:         j.CreatedAt,
-		UpdatedAt:         j.UpdatedAt,
+		CreatedAt:         psqlDateToTime(j.CreatedAt),
+		UpdatedAt:         psqlDateToTime(j.UpdatedAt),
 	}
 }
 

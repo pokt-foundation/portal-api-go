@@ -146,17 +146,17 @@ func (a *dbApplication) toApplication() *repository.Application {
 }
 
 type dbAppJSON struct {
-	ApplicationID string    `json:"application_id"`
-	UserID        string    `json:"user_id"`
-	Name          string    `json:"name"`
-	ContactEmail  string    `json:"contact_email"`
-	Description   string    `json:"description"`
-	Owner         string    `json:"owner"`
-	URL           string    `json:"url"`
-	PayPlanType   string    `json:"pay_plan_type"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ApplicationID string `json:"application_id"`
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	ContactEmail  string `json:"contact_email"`
+	Description   string `json:"description"`
+	Owner         string `json:"owner"`
+	URL           string `json:"url"`
+	PayPlanType   string `json:"pay_plan_type"`
+	Status        string `json:"status"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 func (j dbAppJSON) toOutput() *repository.Application {
@@ -170,8 +170,8 @@ func (j dbAppJSON) toOutput() *repository.Application {
 		URL:          j.URL,
 		PayPlanType:  repository.PayPlanType(j.PayPlanType),
 		Status:       repository.AppStatus(j.Status),
-		CreatedAt:    j.CreatedAt,
-		UpdatedAt:    j.UpdatedAt,
+		CreatedAt:    psqlDateToTime(j.CreatedAt),
+		UpdatedAt:    psqlDateToTime(j.UpdatedAt),
 	}
 }
 
