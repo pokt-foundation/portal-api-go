@@ -28,7 +28,7 @@ func TestPostgresDriver_ReadApplications(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM applications (.+)").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	applications, err := driver.ReadApplications()
 	c.NoError(err)
@@ -49,7 +49,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
@@ -178,7 +178,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
@@ -392,7 +392,7 @@ func TestPostgresDriver_RemoveApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectExec("UPDATE applications").WithArgs("AWAITING_GRACE_PERIOD", sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2").
 		WillReturnResult(sqlmock.NewResult(1, 1))
@@ -418,7 +418,7 @@ func TestPostgresDriver_UpdateFirstDateSurpassed(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectExec("UPDATE applications").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3").
 		WillReturnResult(sqlmock.NewResult(1, 1))

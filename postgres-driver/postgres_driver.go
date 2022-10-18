@@ -8,6 +8,11 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pokt-foundation/portal-api-go/repository"
+)
+
+const (
+	psqlDateLayout = "2006-01-02T15:04:05.999999"
 )
 
 var (
@@ -21,27 +26,56 @@ var (
 
 // PostgresDriver struct handler for PostgresDB related functions
 type PostgresDriver struct {
+	notification chan *repository.Notification
+	listener     Listener
 	*sqlx.DB
 }
 
 // NewPostgresDriverFromConnectionString returns PostgresDriver instance from connection string
-func NewPostgresDriverFromConnectionString(connectionString string) (*PostgresDriver, error) {
+func NewPostgresDriverFromConnectionString(connectionString string, listener Listener) (*PostgresDriver, error) {
 	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PostgresDriver{
-		DB: db,
-	}, nil
+	driver := &PostgresDriver{
+		notification: make(chan *repository.Notification, 32),
+		listener:     listener,
+		DB:           db,
+	}
+
+	err = driver.listener.Listen("events")
+	if err != nil {
+		return nil, err
+	}
+
+	go Listen(driver.listener.NotificationChannel(), driver.notification)
+
+	return driver, nil
 }
 
 // NewPostgresDriverFromSQLDBInstance returns PostgresDriver instance from sdl.DB instance
 // mostly used for mocking tests
-func NewPostgresDriverFromSQLDBInstance(db *sql.DB) *PostgresDriver {
-	return &PostgresDriver{
-		DB: sqlx.NewDb(db, "postgres"),
+func NewPostgresDriverFromSQLDBInstance(db *sql.DB, listener Listener) *PostgresDriver {
+	driver := &PostgresDriver{
+		notification: make(chan *repository.Notification, 32),
+		listener:     listener,
+		DB:           sqlx.NewDb(db, "postgres"),
 	}
+
+	err := driver.listener.Listen("events")
+	if err != nil {
+		panic(err)
+	}
+
+	go Listen(driver.listener.NotificationChannel(), driver.notification)
+
+	return driver
+}
+
+// NotificationChannel returns just receiver Notification channel
+func (d *PostgresDriver) NotificationChannel() <-chan *repository.Notification {
+	return d.notification
 }
 
 func newSQLNullString(value string) sql.NullString {
@@ -137,4 +171,9 @@ func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error 
 	}
 
 	return nil
+}
+
+func psqlDateToTime(rawDate string) time.Time {
+	date, _ := time.Parse(psqlDateLayout, rawDate)
+	return date
 }

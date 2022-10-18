@@ -27,7 +27,7 @@ func TestPostgresDriver_ReadLoadbalancers(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM loadbalancers (.+)").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	loadbalancer, err := driver.ReadLoadBalancers()
 	c.NoError(err)
@@ -48,7 +48,7 @@ func TestPostgresDriver_WriteLoadBalancer(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
@@ -150,7 +150,7 @@ func TestPostgresDriver_UpdateLoadBalancer(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
@@ -249,7 +249,7 @@ func TestPostgresDriver_RemoveLoadBalancer(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectExec("UPDATE loadbalancers").WithArgs(sqlmock.AnyArg(), "60ddc61b6e29c3003378361D").
 		WillReturnResult(sqlmock.NewResult(1, 1))

@@ -130,8 +130,8 @@ func (a *dbApplication) toApplication() *repository.Application {
 			SecretKey:            a.SecretKey.String,
 			SecretKeyRequired:    a.SecretKeyRequired.Bool,
 			WhitelistBlockchains: a.WhitelistBlockchains,
-			WhitelistContracts:   stringToWhitelistContracts(a.WhitelistContracts),
-			WhitelistMethods:     stringToWhitelistMethods(a.WhitelistMethods),
+			WhitelistContracts:   nullStringToWhitelistContracts(a.WhitelistContracts),
+			WhitelistMethods:     nullStringToWhitelistMethods(a.WhitelistMethods),
 			WhitelistOrigins:     a.WhitelistOrigins,
 			WhitelistUserAgents:  a.WhitelistUserAgents,
 		},
@@ -142,6 +142,36 @@ func (a *dbApplication) toApplication() *repository.Application {
 			ThreeQuarters: a.ThreeQuarters.Bool,
 			Full:          a.Full.Bool,
 		},
+	}
+}
+
+type dbAppJSON struct {
+	ApplicationID string `json:"application_id"`
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	ContactEmail  string `json:"contact_email"`
+	Description   string `json:"description"`
+	Owner         string `json:"owner"`
+	URL           string `json:"url"`
+	PayPlanType   string `json:"pay_plan_type"`
+	Status        string `json:"status"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+}
+
+func (j dbAppJSON) toOutput() *repository.Application {
+	return &repository.Application{
+		ID:           j.ApplicationID,
+		UserID:       j.UserID,
+		Name:         j.Name,
+		ContactEmail: j.ContactEmail,
+		Description:  j.Description,
+		Owner:        j.Owner,
+		URL:          j.URL,
+		PayPlanType:  repository.PayPlanType(j.PayPlanType),
+		Status:       repository.AppStatus(j.Status),
+		CreatedAt:    psqlDateToTime(j.CreatedAt),
+		UpdatedAt:    psqlDateToTime(j.UpdatedAt),
 	}
 }
 
@@ -175,6 +205,28 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 	}
 }
 
+type dbGatewayAATJSON struct {
+	ApplicationID   string `json:"application_id"`
+	Address         string `json:"address"`
+	ClientPublicKey string `json:"client_public_key"`
+	PrivateKey      string `json:"private_key"`
+	PublicKey       string `json:"public_key"`
+	Signature       string `json:"signature"`
+	Version         string `json:"version"`
+}
+
+func (j dbGatewayAATJSON) toOutput() *repository.GatewayAAT {
+	return &repository.GatewayAAT{
+		ID:                   j.ApplicationID,
+		Address:              j.Address,
+		ClientPublicKey:      j.ClientPublicKey,
+		PrivateKey:           j.PrivateKey,
+		ApplicationPublicKey: j.PublicKey,
+		ApplicationSignature: j.Signature,
+		Version:              j.Version,
+	}
+}
+
 type insertGatewayAAT struct {
 	ApplicationID   string         `db:"application_id"`
 	Address         sql.NullString `db:"address"`
@@ -186,7 +238,7 @@ type insertGatewayAAT struct {
 }
 
 func (i *insertGatewayAAT) isNotNull() bool {
-	return i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid
+	return i.Address.Valid || i.PublicKey.Valid || i.Signature.Valid || i.ClientPublicKey.Valid || i.Version.Valid || i.PrivateKey.Valid
 }
 
 func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
@@ -198,6 +250,30 @@ func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
 		PublicKey:       newSQLNullString(app.GatewayAAT.ApplicationPublicKey),
 		Signature:       newSQLNullString(app.GatewayAAT.ApplicationSignature),
 		Version:         newSQLNullString(app.GatewayAAT.Version),
+	}
+}
+
+type dbGatewaySettingsJSON struct {
+	ApplicationID        string   `json:"application_id"`
+	SecretKey            string   `json:"secret_key"`
+	SecretKeyRequired    bool     `json:"secret_key_required"`
+	WhitelistContracts   string   `json:"whitelist_contracts"`
+	WhitelistMethods     string   `json:"whitelist_methods"`
+	WhitelistOrigins     []string `json:"whitelist_origins"`
+	WhitelistUserAgents  []string `json:"whitelist_user_agents"`
+	WhitelistBlockchains []string `json:"whitelist_blockchains"`
+}
+
+func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
+	return &repository.GatewaySettings{
+		ID:                   j.ApplicationID,
+		SecretKey:            j.SecretKey,
+		SecretKeyRequired:    j.SecretKeyRequired,
+		WhitelistContracts:   stringToWhitelistContracts(j.WhitelistContracts),
+		WhitelistMethods:     stringToWhitelistMethods(j.WhitelistMethods),
+		WhitelistOrigins:     j.WhitelistOrigins,
+		WhitelistUserAgents:  j.WhitelistUserAgents,
+		WhitelistBlockchains: j.WhitelistBlockchains,
 	}
 }
 
@@ -282,14 +358,18 @@ func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySet
 	}
 }
 
-func stringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
-	contracts := []repository.WhitelistContract{}
-
+func nullStringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
 	if !rawContracts.Valid {
-		return contracts
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
+	return stringToWhitelistContracts(rawContracts.String)
+}
+
+func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContract {
+	contracts := []repository.WhitelistContract{}
+
+	_ = json.Unmarshal([]byte(rawContracts), &contracts)
 
 	for i, contract := range contracts {
 		for j, inContract := range contract.Contracts {
@@ -300,14 +380,18 @@ func stringToWhitelistContracts(rawContracts sql.NullString) []repository.Whitel
 	return contracts
 }
 
-func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
-	methods := []repository.WhitelistMethod{}
-
+func nullStringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
 	if !rawMethods.Valid {
-		return methods
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
+	return stringToWhitelistMethods(rawMethods.String)
+}
+
+func stringToWhitelistMethods(rawMethods string) []repository.WhitelistMethod {
+	methods := []repository.WhitelistMethod{}
+
+	_ = json.Unmarshal([]byte(rawMethods), &methods)
 
 	for i, method := range methods {
 		for j, inMethod := range method.Methods {
@@ -316,6 +400,26 @@ func stringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistM
 	}
 
 	return methods
+}
+
+type dbNotificationSettingsJSON struct {
+	ApplicationID string `json:"application_id"`
+	SignedUp      bool   `json:"signed_up"`
+	Quarter       bool   `json:"on_quarter"`
+	Half          bool   `json:"on_half"`
+	ThreeQuarters bool   `json:"on_three_quarters"`
+	Full          bool   `json:"on_full"`
+}
+
+func (j dbNotificationSettingsJSON) toOutput() *repository.NotificationSettings {
+	return &repository.NotificationSettings{
+		ID:            j.ApplicationID,
+		SignedUp:      j.SignedUp,
+		Quarter:       j.Quarter,
+		Half:          j.Half,
+		ThreeQuarters: j.ThreeQuarters,
+		Full:          j.Full,
+	}
 }
 
 type insertNotificationSettings struct {
