@@ -113,3 +113,7 @@ func Listen(inCh <-chan *pq.Notification, outCh chan *repository.Notification) {
 		go parsePQNotification(n, outCh)
 	}
 }
+
+func (d *PostgresDriver) CloseListener() {
+	close(d.notification)
+}
