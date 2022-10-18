@@ -38,6 +38,10 @@ type Application struct {
 	UpdatedAt            time.Time            `json:"updatedAt"`
 }
 
+func (a *Application) Table() Table {
+	return TableApplications
+}
+
 type AppStatus string
 
 const (
@@ -140,6 +144,10 @@ type GatewayAAT struct {
 	Version              string `json:"version"`
 }
 
+func (a *GatewayAAT) Table() Table {
+	return TableGatewayAAT
+}
+
 type GatewaySettings struct {
 	ID                   string              `json:"id,omitempty"`
 	SecretKey            string              `json:"secretKey"`
@@ -149,6 +157,10 @@ type GatewaySettings struct {
 	WhitelistContracts   []WhitelistContract `json:"whitelistContracts,omitempty"`
 	WhitelistMethods     []WhitelistMethod   `json:"whitelistMethods,omitempty"`
 	WhitelistBlockchains []string            `json:"whitelistBlockchains,omitempty"`
+}
+
+func (s *GatewaySettings) Table() Table {
+	return TableGatewaySettings
 }
 
 type WhitelistContract struct {
@@ -168,6 +180,10 @@ type NotificationSettings struct {
 	Half          bool   `json:"half"`
 	ThreeQuarters bool   `json:"threeQuarters"`
 	Full          bool   `json:"full"`
+}
+
+func (s *NotificationSettings) Table() Table {
+	return TableNotificationSettings
 }
 
 type Blockchain struct {
@@ -193,6 +209,10 @@ type Blockchain struct {
 	UpdatedAt         time.Time        `json:"updatedAt"`
 }
 
+func (b *Blockchain) Table() Table {
+	return TableBlockchains
+}
+
 type Redirect struct {
 	ID             string    `json:"id"`
 	BlockchainID   string    `json:"blockchainID"`
@@ -203,12 +223,20 @@ type Redirect struct {
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
+func (r *Redirect) Table() Table {
+	return TableRedirects
+}
+
 type SyncCheckOptions struct {
 	BlockchainID string `json:"blockchainID"`
 	Body         string `json:"body"`
 	Path         string `json:"path"`
 	ResultKey    string `json:"resultKey"`
 	Allowance    int    `json:"allowance"`
+}
+
+func (o *SyncCheckOptions) Table() Table {
+	return TableSyncCheckOptions
 }
 
 // loadBalancer is an internal struct, reflects json, contains unverified fields, e.g. applicationIDs
@@ -239,6 +267,10 @@ type LoadBalancer struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+func (l *LoadBalancer) Table() Table {
+	return TableLoadBalancers
+}
+
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
 	Name          string         `json:"name,omitempty"`
@@ -252,6 +284,10 @@ type StickyOptions struct {
 	StickyOrigins []string `json:"stickyOrigins"`
 	StickyMax     int      `json:"stickyMax"`
 	Stickiness    bool     `json:"stickiness"`
+}
+
+func (s *StickyOptions) Table() Table {
+	return TableStickinessOptions
 }
 
 func (s *StickyOptions) IsEmpty() bool {
@@ -434,7 +470,11 @@ const (
 )
 
 type Notification struct {
-	Table  Table  `json:"table"`
-	Action Action `json:"action"`
-	Data   any    `json:"data"`
+	Table  Table
+	Action Action
+	Data   SavedOnDB
+}
+
+type SavedOnDB interface {
+	Table() Table
 }

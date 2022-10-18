@@ -34,7 +34,7 @@ func gatewaySettingsIsNull(settings repository.GatewaySettings) bool {
 		len(settings.WhitelistBlockchains) == 0
 }
 
-func applicationInputs(mainTableAction, sideTablesAction repository.Action, content any) []inputStruct {
+func applicationInputs(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) []inputStruct {
 	app := content.(*repository.Application)
 
 	var inputs []inputStruct
@@ -111,7 +111,7 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 	return inputs
 }
 
-func blockchainInputs(mainTableAction, sideTablesAction repository.Action, content any) []inputStruct {
+func blockchainInputs(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) []inputStruct {
 	blockchain := content.(*repository.Blockchain)
 
 	var inputs []inputStruct
@@ -156,7 +156,7 @@ func blockchainInputs(mainTableAction, sideTablesAction repository.Action, conte
 	return inputs
 }
 
-func loadBalancerInputs(mainTableAction, sideTablesAction repository.Action, content any) []inputStruct {
+func loadBalancerInputs(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) []inputStruct {
 	lb := content.(*repository.LoadBalancer)
 
 	var inputs []inputStruct
@@ -193,7 +193,7 @@ func loadBalancerInputs(mainTableAction, sideTablesAction repository.Action, con
 	return inputs
 }
 
-func redirectInput(action repository.Action, content any) inputStruct {
+func redirectInput(action repository.Action, content repository.SavedOnDB) inputStruct {
 	redirect := content.(*repository.Redirect)
 
 	return inputStruct{
@@ -217,7 +217,7 @@ type inputStruct struct {
 }
 
 func mockInput(inStruct inputStruct) *pq.Notification {
-	notification, _ := json.Marshal(repository.Notification{
+	notification, _ := json.Marshal(notification{
 		Table:  inStruct.table,
 		Action: inStruct.action,
 		Data:   inStruct.input,
@@ -228,7 +228,7 @@ func mockInput(inStruct inputStruct) *pq.Notification {
 	}
 }
 
-func mockContent(mainTableAction, sideTablesAction repository.Action, content any) []*pq.Notification {
+func mockContent(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) []*pq.Notification {
 	var inputs []inputStruct
 
 	switch content.(type) {
@@ -253,7 +253,7 @@ func mockContent(mainTableAction, sideTablesAction repository.Action, content an
 	return notifications
 }
 
-func (l *ListenerMock) MockEvent(mainTableAction, sideTablesAction repository.Action, content any) {
+func (l *ListenerMock) MockEvent(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) {
 	notifications := mockContent(mainTableAction, sideTablesAction, content)
 
 	for _, notification := range notifications {

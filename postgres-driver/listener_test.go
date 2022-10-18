@@ -11,7 +11,7 @@ import (
 func TestListen(t *testing.T) {
 	testCases := []struct {
 		name                  string
-		content               any
+		content               repository.SavedOnDB
 		expectedNotifications map[repository.Table]*repository.Notification
 		wantPanic             bool
 	}{
@@ -137,7 +137,7 @@ func TestListen(t *testing.T) {
 		},
 		{
 			name:      "panic",
-			content:   "dummy",
+			content:   &repository.GatewayAAT{},
 			wantPanic: true,
 		},
 	}
