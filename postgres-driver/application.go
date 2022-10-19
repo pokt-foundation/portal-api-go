@@ -158,6 +158,7 @@ type dbAppJSON struct {
 	CreatedAt          string `json:"created_at"`
 	UpdatedAt          string `json:"updated_at"`
 	FirstDateSurpassed string `json:"first_date_surpassed"`
+	Dummy              bool   `json:"dummy"`
 }
 
 func (j dbAppJSON) toOutput() *repository.Application {
@@ -174,6 +175,7 @@ func (j dbAppJSON) toOutput() *repository.Application {
 		CreatedAt:          psqlDateToTime(j.CreatedAt),
 		UpdatedAt:          psqlDateToTime(j.UpdatedAt),
 		FirstDateSurpassed: psqlDateToTime(j.FirstDateSurpassed),
+		Dummy:              j.Dummy,
 	}
 }
 

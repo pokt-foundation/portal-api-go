@@ -55,6 +55,7 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 			CreatedAt:          app.CreatedAt.Format(psqlDateLayout),
 			UpdatedAt:          app.UpdatedAt.Format(psqlDateLayout),
 			FirstDateSurpassed: app.FirstDateSurpassed.Format(psqlDateLayout),
+			Dummy:              app.Dummy,
 		},
 	})
 
