@@ -29,7 +29,7 @@ type Application struct {
 	Status               AppStatus            `json:"status"`
 	Dummy                bool                 `json:"dummy"`
 	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
-	FirstDateSurpassed   *time.Time           `json:"firstDateSurpassed"`
+	FirstDateSurpassed   time.Time            `json:"firstDateSurpassed"`
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
