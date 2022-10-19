@@ -114,7 +114,7 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Owner:              a.Owner.String,
 		URL:                a.URL.String,
 		PayPlanType:        repository.PayPlanType(a.PayPlanType.String),
-		FirstDateSurpassed: &a.FirstDateSurpassed.Time,
+		FirstDateSurpassed: a.FirstDateSurpassed.Time,
 		Dummy:              a.Dummy.Bool,
 		CreatedAt:          a.CreatedAt.Time,
 		UpdatedAt:          a.UpdatedAt.Time,
@@ -146,32 +146,34 @@ func (a *dbApplication) toApplication() *repository.Application {
 }
 
 type dbAppJSON struct {
-	ApplicationID string `json:"application_id"`
-	UserID        string `json:"user_id"`
-	Name          string `json:"name"`
-	ContactEmail  string `json:"contact_email"`
-	Description   string `json:"description"`
-	Owner         string `json:"owner"`
-	URL           string `json:"url"`
-	PayPlanType   string `json:"pay_plan_type"`
-	Status        string `json:"status"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	ApplicationID      string `json:"application_id"`
+	UserID             string `json:"user_id"`
+	Name               string `json:"name"`
+	ContactEmail       string `json:"contact_email"`
+	Description        string `json:"description"`
+	Owner              string `json:"owner"`
+	URL                string `json:"url"`
+	PayPlanType        string `json:"pay_plan_type"`
+	Status             string `json:"status"`
+	CreatedAt          string `json:"created_at"`
+	UpdatedAt          string `json:"updated_at"`
+	FirstDateSurpassed string `json:"first_date_surpassed"`
 }
 
 func (j dbAppJSON) toOutput() *repository.Application {
 	return &repository.Application{
-		ID:           j.ApplicationID,
-		UserID:       j.UserID,
-		Name:         j.Name,
-		ContactEmail: j.ContactEmail,
-		Description:  j.Description,
-		Owner:        j.Owner,
-		URL:          j.URL,
-		PayPlanType:  repository.PayPlanType(j.PayPlanType),
-		Status:       repository.AppStatus(j.Status),
-		CreatedAt:    psqlDateToTime(j.CreatedAt),
-		UpdatedAt:    psqlDateToTime(j.UpdatedAt),
+		ID:                 j.ApplicationID,
+		UserID:             j.UserID,
+		Name:               j.Name,
+		ContactEmail:       j.ContactEmail,
+		Description:        j.Description,
+		Owner:              j.Owner,
+		URL:                j.URL,
+		PayPlanType:        repository.PayPlanType(j.PayPlanType),
+		Status:             repository.AppStatus(j.Status),
+		CreatedAt:          psqlDateToTime(j.CreatedAt),
+		UpdatedAt:          psqlDateToTime(j.UpdatedAt),
+		FirstDateSurpassed: psqlDateToTime(j.FirstDateSurpassed),
 	}
 }
 
