@@ -54,7 +54,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
@@ -130,7 +130,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in applications"))
 
 	app, err = driver.WriteApplication(appToSend)
@@ -140,7 +140,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
