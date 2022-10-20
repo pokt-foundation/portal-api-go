@@ -192,6 +192,17 @@ func loadBalancerInputs(mainTableAction, sideTablesAction repository.Action, con
 		})
 	}
 
+	for _, appID := range lb.ApplicationIDs {
+		inputs = append(inputs, inputStruct{
+			action: sideTablesAction,
+			table:  repository.TableLbApps,
+			input: repository.LbApp{
+				LbID:  lb.ID,
+				AppID: appID,
+			},
+		})
+	}
+
 	return inputs
 }
 

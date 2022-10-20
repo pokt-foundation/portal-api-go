@@ -126,6 +126,18 @@ func (n notification) parseSyncOptionsNotification() *repository.Notification {
 	}
 }
 
+func (n notification) parseLbApps() *repository.Notification {
+	rawData, _ := json.Marshal(n.Data)
+	var lbApp repository.LbApp
+	_ = json.Unmarshal(rawData, &lbApp)
+
+	return &repository.Notification{
+		Table:  n.Table,
+		Action: n.Action,
+		Data:   &lbApp,
+	}
+}
+
 func (n notification) parseNotification() *repository.Notification {
 	switch n.Table {
 	case repository.TableApplications:
@@ -146,6 +158,8 @@ func (n notification) parseNotification() *repository.Notification {
 		return n.parseStickinessOptionsNotification()
 	case repository.TableSyncCheckOptions:
 		return n.parseSyncOptionsNotification()
+	case repository.TableLbApps:
+		return n.parseLbApps()
 	}
 
 	return nil
