@@ -271,6 +271,17 @@ func (l *LoadBalancer) Table() Table {
 	return TableLoadBalancers
 }
 
+// LbApp represents in DB relationships of lb and apps
+// do not change the tags, they're snake_case on purpose
+type LbApp struct {
+	LbID  string `json:"lb_id"`
+	AppID string `json:"app_id"`
+}
+
+func (l *LbApp) Table() Table {
+	return TableLbApps
+}
+
 // UpdateLoadBalancer struct holding possible field to update
 type UpdateLoadBalancer struct {
 	Name          string         `json:"name,omitempty"`
@@ -460,6 +471,7 @@ const (
 	TableRedirects            Table = "redirects"
 	TableStickinessOptions    Table = "stickiness_options"
 	TableSyncCheckOptions     Table = "sync_check_options"
+	TableLbApps               Table = "lb_apps"
 )
 
 type Action string

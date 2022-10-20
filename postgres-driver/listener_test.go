@@ -100,6 +100,7 @@ func TestListen(t *testing.T) {
 					StickyOrigins: []string{"oahu"},
 					Stickiness:    true,
 				},
+				ApplicationIDs: []string{"a123"},
 			},
 			expectedNotifications: map[repository.Table]*repository.Notification{
 				repository.TableLoadBalancers: {
@@ -116,6 +117,14 @@ func TestListen(t *testing.T) {
 						ID:            "123",
 						StickyOrigins: []string{"oahu"},
 						Stickiness:    true,
+					},
+				},
+				repository.TableLbApps: {
+					Table:  repository.TableLbApps,
+					Action: repository.ActionUpdate,
+					Data: &repository.LbApp{
+						LbID:  "123",
+						AppID: "a123",
 					},
 				},
 			},

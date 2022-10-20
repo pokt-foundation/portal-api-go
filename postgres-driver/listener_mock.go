@@ -55,6 +55,7 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 			CreatedAt:          app.CreatedAt.Format(psqlDateLayout),
 			UpdatedAt:          app.UpdatedAt.Format(psqlDateLayout),
 			FirstDateSurpassed: app.FirstDateSurpassed.Format(psqlDateLayout),
+			Dummy:              app.Dummy,
 		},
 	})
 
@@ -187,6 +188,17 @@ func loadBalancerInputs(mainTableAction, sideTablesAction repository.Action, con
 				Origins:    lb.StickyOptions.StickyOrigins,
 				StickyMax:  lb.StickyOptions.StickyMax,
 				Stickiness: lb.StickyOptions.Stickiness,
+			},
+		})
+	}
+
+	for _, appID := range lb.ApplicationIDs {
+		inputs = append(inputs, inputStruct{
+			action: sideTablesAction,
+			table:  repository.TableLbApps,
+			input: repository.LbApp{
+				LbID:  lb.ID,
+				AppID: appID,
 			},
 		})
 	}
