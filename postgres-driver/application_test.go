@@ -28,7 +28,7 @@ func TestPostgresDriver_ReadApplications(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM applications (.+)").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	applications, err := driver.ReadApplications()
 	c.NoError(err)
@@ -49,12 +49,12 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
@@ -68,7 +68,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs(sqlmock.AnyArg(),
 		"54y4p93body6qco2nrhonz6bltn1k5e8", true, `[{"blockchainID":"0021","contracts":["ajua"]}]`,
-		`[{"BlockchainID":"0021","methods":["POST"]}]`, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
+		`[{"blockchainID":"0021","methods":["POST"]}]`, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into notification_settings").WithArgs(sqlmock.AnyArg(),
@@ -130,7 +130,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("error in applications"))
 
 	app, err = driver.WriteApplication(appToSend)
@@ -140,7 +140,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectExec("INSERT into applications").WithArgs(sqlmock.AnyArg(),
-		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		"60ddc61b6e29c3003378361D", "klk", "yes@yes.com", "a life", "juancito", "app.com", "FREETIER_V0", "ORPHANED", false, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into gateway_aat").WithArgs(sqlmock.AnyArg(),
@@ -178,7 +178,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
@@ -191,7 +191,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
 
 	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -248,7 +248,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
 
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -334,7 +334,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
 
 	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in settings"))
 
@@ -354,7 +354,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
 
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"BlockchainID":"0021","methods":["POST"]}]`,
+		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
 		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnError(errors.New("error in inserting settings"))
 
@@ -392,7 +392,7 @@ func TestPostgresDriver_RemoveApplication(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectExec("UPDATE applications").WithArgs("AWAITING_GRACE_PERIOD", sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2").
 		WillReturnResult(sqlmock.NewResult(1, 1))
@@ -418,7 +418,7 @@ func TestPostgresDriver_UpdateFirstDateSurpassed(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectExec("UPDATE applications").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "60ddc61b6e2936fhtrns63h2", "60ddc61b6e2936fhtrns63h3").
 		WillReturnResult(sqlmock.NewResult(1, 1))

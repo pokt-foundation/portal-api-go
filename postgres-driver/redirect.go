@@ -16,6 +16,26 @@ const (
 	VALUES (:blockchain_id, :alias, :loadbalancer, :domain, :created_at, :updated_at)`
 )
 
+type dbRedirectJSON struct {
+	BlockchainID   string `json:"blockchain_id"`
+	Alias          string `json:"alias"`
+	LoadBalancerID string `json:"loadbalancer"`
+	Domain         string `json:"domain"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
+func (j dbRedirectJSON) toOutput() *repository.Redirect {
+	return &repository.Redirect{
+		BlockchainID:   j.BlockchainID,
+		Alias:          j.Alias,
+		LoadBalancerID: j.LoadBalancerID,
+		Domain:         j.Domain,
+		CreatedAt:      psqlDateToTime(j.CreatedAt),
+		UpdatedAt:      psqlDateToTime(j.UpdatedAt),
+	}
+}
+
 type dbRedirect struct {
 	BlockchainID   string         `db:"blockchain_id"`
 	Alias          sql.NullString `db:"alias"`

@@ -28,7 +28,7 @@ func TestPostgresDriver_ReadBlockchains(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM blockchains (.+)").WillReturnRows(rows)
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	blockchains, err := driver.ReadBlockchains()
 	c.NoError(err)
@@ -49,7 +49,7 @@ func TestPostgresDriver_WriteBlockchain(t *testing.T) {
 
 	defer db.Close()
 
-	driver := NewPostgresDriverFromSQLDBInstance(db)
+	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
 	mock.ExpectBegin()
 
