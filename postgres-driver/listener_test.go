@@ -1,3 +1,5 @@
+//revive:disable:cyclomatic
+//revive:disable:cognitive
 package postgresdriver
 
 import (
