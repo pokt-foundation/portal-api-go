@@ -21,7 +21,7 @@ jobs:
       uses: docker://morphy/revive-action:v2
       with:
         config: revive.toml
-        exclude: "*_test.go"
+        exclude: *_test.go
           
   test:
     name: Test
