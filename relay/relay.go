@@ -39,7 +39,7 @@ type RelayOptions struct {
 	Path           string
 	RequestID      uuid.UUID
 	BlockchainID   string
-	RpcID          int
+	RPCID          int
 	ApplicationID  string
 	LoadBalancerID string
 }

@@ -20,7 +20,7 @@ func TestGatherSettings(t *testing.T) {
 			name: "RPC URLs string",
 			args: []string{"-rpcUrls", "https://url1,https://url2"},
 			expected: settings{
-				RpcUrls:  []string{"https://url1", "https://url2"},
+				RPCURLs:  []string{"https://url1", "https://url2"},
 				LogLevel: logger.InfoLevel,
 				Port:     8090,
 			},
@@ -34,7 +34,7 @@ func TestGatherSettings(t *testing.T) {
 				"-privateKey", "privateKey",
 			},
 			expected: settings{
-				RpcUrls:    []string{"https://url1"},
+				RPCURLs:    []string{"https://url1"},
 				LogLevel:   logger.DebugLevel,
 				Port:       8191,
 				PrivateKey: "privateKey",

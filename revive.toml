@@ -43,6 +43,6 @@ warningCode = 1
 [rule.modifies-parameter]
 [rule.unnecessary-stmt]
 [rule.cyclomatic]
-  arguments = [9]
+  arguments = [14]
 [rule.cognitive-complexity]
-    Arguments = [10]
+    Arguments = [15]
