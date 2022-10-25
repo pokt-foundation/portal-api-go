@@ -99,7 +99,7 @@ func TestEnforceRelayLimit(t *testing.T) {
 				},
 				log: logger.New(),
 			}
-			sn.enforceRelayLimit(tc.input)
+			_ = sn.enforceRelayLimit(tc.input)
 
 			var all []StickyClient
 			for _, sc := range sn.items {
@@ -215,7 +215,7 @@ func TestFailure(t *testing.T) {
 				log: logger.New(),
 			}
 
-			sn.Failure(tc.input)
+			_ = sn.Failure(tc.input)
 
 			var all []StickyClient
 			for _, sc := range sn.items {
@@ -311,7 +311,7 @@ func TestSuccess(t *testing.T) {
 				log: logger.New(),
 			}
 
-			sn.Success(tc.input)
+			_ = sn.Success(tc.input)
 
 			var all []StickyClient
 			for _, sc := range sn.items {

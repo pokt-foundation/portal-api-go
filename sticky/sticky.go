@@ -37,7 +37,6 @@ type StickyClient struct {
 	PreferredApplicationID string
 	PreferredNodeAddress   string
 	RPCID                  int
-	ttl                    time.Time
 
 	Relays *CountWithTTL
 	Errors *CountWithTTL
