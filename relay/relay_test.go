@@ -1,4 +1,3 @@
-//revive:disable
 package relay
 
 import (

@@ -1,4 +1,3 @@
-//revive:disable
 package main
 
 import (

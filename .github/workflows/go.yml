@@ -17,11 +17,9 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Run Revive Action
-      uses: docker://morphy/revive-action:v2
-      with:
-        config: revive.toml
-          
+    - name: Run Golang ci Action
+      uses: golangci/golangci-lint-action@v3
+
   test:
     name: Test
     runs-on: ubuntu-latest

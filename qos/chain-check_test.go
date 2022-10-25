@@ -1,4 +1,3 @@
-//revive:disable
 package qos
 
 // TODO: uncomment when tests pass
