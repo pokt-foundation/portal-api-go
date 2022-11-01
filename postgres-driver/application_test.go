@@ -182,7 +182,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
@@ -242,7 +242,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
@@ -264,7 +264,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
@@ -283,7 +283,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectCommit()
@@ -297,7 +297,20 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs(nil, nil, "ENTERPRISE", 2000000, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectCommit()
+
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+		PayPlanType:     repository.Enterprise,
+		EnterpriseLimit: 2000000,
+	})
+	c.NoError(err)
+
+	mock.ExpectBegin()
+
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in applications"))
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
@@ -310,7 +323,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnError(errors.New("error reading gateway_settings"))
@@ -325,7 +338,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
@@ -348,7 +361,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
+	mock.ExpectExec("UPDATE applications").WithArgs("pablo", "ORPHANED", "PAY_AS_YOU_GO_V0", nil, sqlmock.AnyArg(), sqlmock.AnyArg(), "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))

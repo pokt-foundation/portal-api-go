@@ -26,6 +26,7 @@ type Application struct {
 	Description          string               `json:"description"`
 	Owner                string               `json:"owner"`
 	URL                  string               `json:"url"`
+	EnterpriseLimit      int                  `json:"enterpriseLimit"`
 	Status               AppStatus            `json:"status"`
 	Dummy                bool                 `json:"dummy"`
 	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
@@ -89,6 +90,7 @@ const (
 	TestPlan90k  PayPlanType = "TEST_PLAN_90K"
 	FreetierV0   PayPlanType = "FREETIER_V0"
 	PayAsYouGoV0 PayPlanType = "PAY_AS_YOU_GO_V0"
+	Enterprise   PayPlanType = "ENTERPRISE"
 )
 
 var (
@@ -99,6 +101,7 @@ var (
 		TestPlan90k:  true,
 		FreetierV0:   true,
 		PayAsYouGoV0: true,
+		Enterprise:   true,
 	}
 )
 
@@ -124,6 +127,7 @@ type UpdateApplication struct {
 	Status               AppStatus             `json:"status,omitempty"`
 	PayPlanType          PayPlanType           `json:"payPlanType,omitempty"`
 	FirstDateSurpassed   time.Time             `json:"firstDateSurpassed,omitempty"`
+	EnterpriseLimit      int                   `json:"enterpriseLimit,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`

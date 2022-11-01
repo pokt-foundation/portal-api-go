@@ -14,7 +14,7 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.pay_plan_type, a.first_date_surpassed,
+	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.enterprise_limit, a.user_id, a.pay_plan_type, a.first_date_surpassed,
 	ga.address AS ga_address, ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
 	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full
@@ -42,8 +42,8 @@ const (
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
 	updateApplication = `
 	UPDATE applications
-	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), first_date_surpassed = COALESCE($4, first_date_surpassed), updated_at = $5
-	WHERE application_id = $6`
+	SET name = COALESCE($1, name), status = COALESCE($2, status), pay_plan_type = COALESCE($3, pay_plan_type), enterprise_limit = COALESCE($4, enterprise_limit), first_date_surpassed = COALESCE($5, first_date_surpassed), updated_at = $6
+	WHERE application_id = $7`
 	updateFirstDateSurpassedScript = `
 	UPDATE applications
 	SET first_date_surpassed = :first_date_surpassed, updated_at = :updated_at
@@ -85,6 +85,7 @@ type dbApplication struct {
 	PAAdress             sql.NullString `db:"pa_address"`
 	SecretKey            sql.NullString `db:"secret_key"`
 	URL                  sql.NullString `db:"url"`
+	EnterpriseLimit      sql.NullInt64  `db:"enterprise_limit"`
 	PayPlanType          sql.NullString `db:"pay_plan_type"`
 	FirstDateSurpassed   sql.NullTime   `db:"first_date_surpassed"`
 	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
@@ -113,6 +114,7 @@ func (a *dbApplication) toApplication() *repository.Application {
 		Description:        a.Description.String,
 		Owner:              a.Owner.String,
 		URL:                a.URL.String,
+		EnterpriseLimit:    int(a.EnterpriseLimit.Int64),
 		PayPlanType:        repository.PayPlanType(a.PayPlanType.String),
 		FirstDateSurpassed: a.FirstDateSurpassed.Time,
 		Dummy:              a.Dummy.Bool,
@@ -153,6 +155,7 @@ type dbAppJSON struct {
 	Description        string `json:"description"`
 	Owner              string `json:"owner"`
 	URL                string `json:"url"`
+	EnterpriseLimit    int    `json:"enterprise_limit"`
 	PayPlanType        string `json:"pay_plan_type"`
 	Status             string `json:"status"`
 	CreatedAt          string `json:"created_at"`
@@ -170,6 +173,7 @@ func (j dbAppJSON) toOutput() *repository.Application {
 		Description:        j.Description,
 		Owner:              j.Owner,
 		URL:                j.URL,
+		EnterpriseLimit:    j.EnterpriseLimit,
 		PayPlanType:        repository.PayPlanType(j.PayPlanType),
 		Status:             repository.AppStatus(j.Status),
 		CreatedAt:          psqlDateToTime(j.CreatedAt),
@@ -180,34 +184,36 @@ func (j dbAppJSON) toOutput() *repository.Application {
 }
 
 type insertDBApp struct {
-	ApplicationID string         `db:"application_id"`
-	UserID        sql.NullString `db:"user_id"`
-	Name          sql.NullString `db:"name"`
-	ContactEmail  sql.NullString `db:"contact_email"`
-	Description   sql.NullString `db:"description"`
-	Owner         sql.NullString `db:"owner"`
-	URL           sql.NullString `db:"url"`
-	PayPlanType   sql.NullString `db:"pay_plan_type"`
-	Status        sql.NullString `db:"status"`
-	CreatedAt     time.Time      `db:"created_at"`
-	UpdatedAt     time.Time      `db:"updated_at"`
-	Dummy         bool           `db:"dummy"`
+	ApplicationID   string         `db:"application_id"`
+	UserID          sql.NullString `db:"user_id"`
+	Name            sql.NullString `db:"name"`
+	ContactEmail    sql.NullString `db:"contact_email"`
+	Description     sql.NullString `db:"description"`
+	Owner           sql.NullString `db:"owner"`
+	URL             sql.NullString `db:"url"`
+	EnterpriseLimit sql.NullInt64  `db:"enterprise_limit"`
+	PayPlanType     sql.NullString `db:"pay_plan_type"`
+	Status          sql.NullString `db:"status"`
+	CreatedAt       time.Time      `db:"created_at"`
+	UpdatedAt       time.Time      `db:"updated_at"`
+	Dummy           bool           `db:"dummy"`
 }
 
 func extractInsertDBApp(app *repository.Application) *insertDBApp {
 	return &insertDBApp{
-		ApplicationID: app.ID,
-		UserID:        newSQLNullString(app.UserID),
-		Name:          newSQLNullString(app.Name),
-		ContactEmail:  newSQLNullString(app.ContactEmail),
-		Description:   newSQLNullString(app.Description),
-		Owner:         newSQLNullString(app.Owner),
-		URL:           newSQLNullString(app.URL),
-		PayPlanType:   newSQLNullString(string(app.PayPlanType)),
-		Status:        newSQLNullString(string(app.Status)),
-		CreatedAt:     app.CreatedAt,
-		UpdatedAt:     app.UpdatedAt,
-		Dummy:         app.Dummy,
+		ApplicationID:   app.ID,
+		UserID:          newSQLNullString(app.UserID),
+		Name:            newSQLNullString(app.Name),
+		ContactEmail:    newSQLNullString(app.ContactEmail),
+		Description:     newSQLNullString(app.Description),
+		Owner:           newSQLNullString(app.Owner),
+		URL:             newSQLNullString(app.URL),
+		EnterpriseLimit: newSQLNullInt64(int64(app.EnterpriseLimit)),
+		PayPlanType:     newSQLNullString(string(app.PayPlanType)),
+		Status:          newSQLNullString(string(app.Status)),
+		CreatedAt:       app.CreatedAt,
+		UpdatedAt:       app.UpdatedAt,
+		Dummy:           app.Dummy,
 	}
 }
 
@@ -577,9 +583,9 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 	if err != nil {
 		return err
 	}
-
 	_, err = tx.Exec(updateApplication, newSQLNullString(fieldsToUpdate.Name), newSQLNullString(string(fieldsToUpdate.Status)),
-		newSQLNullString(string(fieldsToUpdate.PayPlanType)), newSQLNullTime(fieldsToUpdate.FirstDateSurpassed), time.Now(), id)
+		newSQLNullString(string(fieldsToUpdate.PayPlanType)), newSQLNullInt64(int64(fieldsToUpdate.EnterpriseLimit)),
+		newSQLNullTime(fieldsToUpdate.FirstDateSurpassed), time.Now(), id)
 	if err != nil {
 		return err
 	}
