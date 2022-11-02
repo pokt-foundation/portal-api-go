@@ -64,6 +64,7 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 		input: dbAppLimitJSON{
 			ApplicationID: app.ID,
 			PlanType:      string(app.Limit.PayPlan.Type),
+			PlanLimit:     app.Limit.PayPlan.Limit,
 			CustomLimit:   app.Limit.CustomLimit,
 		},
 	})

@@ -18,7 +18,7 @@ const (
 	ga.address AS ga_address, ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
 	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
 	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
-	al.custom_limit, al.plan_type, pp.daily_limit as plan_limit
+	al.custom_limit, al.pay_plan, pp.daily_limit as plan_limit
 	FROM applications AS a
 	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
 	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
@@ -111,7 +111,7 @@ type dbApplication struct {
 	Half                 sql.NullBool   `db:"on_half"`
 	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
 	Full                 sql.NullBool   `db:"on_full"`
-	PlanType             sql.NullString `db:"plan_type"`
+	PlanType             sql.NullString `db:"pay_plan"`
 	CustomLimit          sql.NullInt32  `db:"custom_limit"`
 	PlanLimit            sql.NullInt32  `db:"plan_limit"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
@@ -232,6 +232,7 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 type dbAppLimitJSON struct {
 	ApplicationID string `json:"application_id"`
 	PlanType      string `json:"pay_plan"`
+	PlanLimit     int    `json:"plan_limit"`
 	CustomLimit   int    `json:"custom_limit"`
 }
 
@@ -239,7 +240,8 @@ func (j dbAppLimitJSON) toOutput() *repository.AppLimit {
 	return &repository.AppLimit{
 		ID: j.ApplicationID,
 		PayPlan: repository.PayPlan{
-			Type: repository.PayPlanType(j.PlanType),
+			Type:  repository.PayPlanType(j.PlanType),
+			Limit: j.PlanLimit,
 		},
 		CustomLimit: j.CustomLimit,
 	}
