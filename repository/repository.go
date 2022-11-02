@@ -42,18 +42,18 @@ func (a *Application) Table() Table {
 	return TableApplications
 }
 
+func (a *Application) DailyLimit() int {
+	if a.Limit.PayPlan.Type == Enterprise {
+		return a.Limit.CustomLimit
+	}
+
+	return a.Limit.PayPlan.Limit
+}
+
 type AppLimit struct {
 	ID          string  `json:"id,omitempty"`
 	PayPlan     PayPlan `json:"payPlan"`
 	CustomLimit int     `json:"customLimit"`
-}
-
-func (a *AppLimit) DailyLimit() int {
-	if a.PayPlan.Type == Enterprise {
-		return a.CustomLimit
-	}
-
-	return a.PayPlan.Limit
 }
 
 func (a *AppLimit) Table() Table {
