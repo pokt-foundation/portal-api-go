@@ -112,8 +112,8 @@ type dbApplication struct {
 	ThreeQuarters        sql.NullBool   `db:"on_three_quarters"`
 	Full                 sql.NullBool   `db:"on_full"`
 	PlanType             sql.NullString `db:"pay_plan"`
-	CustomLimit          sql.NullInt32  `db:"custom_limit"`
 	PlanLimit            sql.NullInt32  `db:"plan_limit"`
+	CustomLimit          sql.NullInt32  `db:"custom_limit"`
 	CreatedAt            sql.NullTime   `db:"created_at"`
 	UpdatedAt            sql.NullTime   `db:"updated_at"`
 }
@@ -230,19 +230,15 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 }
 
 type dbAppLimitJSON struct {
-	ApplicationID string `json:"application_id"`
-	PlanType      string `json:"pay_plan"`
-	PlanLimit     int    `json:"plan_limit"`
-	CustomLimit   int    `json:"custom_limit"`
+	ApplicationID string             `json:"application_id"`
+	PayPlan       repository.PayPlan `json:"pay_plan"`
+	CustomLimit   int                `json:"custom_limit"`
 }
 
 func (j dbAppLimitJSON) toOutput() *repository.AppLimit {
 	return &repository.AppLimit{
-		ID: j.ApplicationID,
-		PayPlan: repository.PayPlan{
-			Type:  repository.PayPlanType(j.PlanType),
-			Limit: j.PlanLimit,
-		},
+		ID:          j.ApplicationID,
+		PayPlan:     j.PayPlan,
 		CustomLimit: j.CustomLimit,
 	}
 }

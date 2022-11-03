@@ -34,7 +34,7 @@ type Application struct {
 
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
-	Limit                AppLimit             `json:"appLimit"`
+	Limit                AppLimit             `json:"limit"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
 }
 
@@ -100,8 +100,8 @@ var (
 )
 
 type PayPlan struct {
-	Type  PayPlanType `json:"plan"`
-	Limit int         `json:"limit"`
+	Type  PayPlanType `json:"planType"`
+	Limit int         `json:"dailyLimit"`
 }
 
 type PayPlanType string
