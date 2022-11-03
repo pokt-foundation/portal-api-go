@@ -78,6 +78,7 @@ const (
 var (
 	ErrInvalidAppStatus   = errors.New("invalid app status")
 	ErrInvalidPayPlanType = errors.New("invalid pay plan type")
+	ErrNotEnterprisePlan  = errors.New("custom limits may only be set on enterprise plans")
 )
 
 type dbApplication struct {
@@ -230,15 +231,17 @@ func extractInsertDBApp(app *repository.Application) *insertDBApp {
 }
 
 type dbAppLimitJSON struct {
-	ApplicationID string             `json:"application_id"`
-	PayPlan       repository.PayPlan `json:"pay_plan"`
-	CustomLimit   int                `json:"custom_limit"`
+	ApplicationID string                 `json:"application_id"`
+	PlanType      repository.PayPlanType `json:"pay_plan"`
+	CustomLimit   int                    `json:"custom_limit"`
 }
 
 func (j dbAppLimitJSON) toOutput() *repository.AppLimit {
 	return &repository.AppLimit{
-		ID:          j.ApplicationID,
-		PayPlan:     j.PayPlan,
+		ID: j.ApplicationID,
+		PayPlan: repository.PayPlan{
+			Type: j.PlanType,
+		},
 		CustomLimit: j.CustomLimit,
 	}
 }
@@ -587,6 +590,10 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 		return nil, ErrInvalidPayPlanType
 	}
 
+	if app.Limit.PayPlan.Type != repository.Enterprise && app.Limit.CustomLimit != 0 {
+		return nil, ErrNotEnterprisePlan
+	}
+
 	id, err := generateRandomID()
 	if err != nil {
 		return nil, err
@@ -654,6 +661,12 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 
 	if fieldsToUpdate.Limit != nil && !repository.ValidPayPlanTypes[fieldsToUpdate.Limit.PayPlan.Type] {
 		return ErrInvalidPayPlanType
+	}
+
+	if fieldsToUpdate.Limit != nil &&
+		fieldsToUpdate.Limit.PayPlan.Type != repository.Enterprise &&
+		fieldsToUpdate.Limit.CustomLimit != 0 {
+		return ErrNotEnterprisePlan
 	}
 
 	tx, err := d.Beginx()
