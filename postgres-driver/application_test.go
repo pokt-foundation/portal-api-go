@@ -168,14 +168,14 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 	appToSend.Status = "wrong"
 
 	app, err = driver.WriteApplication(appToSend)
-	c.Equal(ErrInvalidAppStatus, err)
+	c.Equal(repository.ErrInvalidAppStatus, err)
 	c.Empty(app)
 
 	appToSend.Status = repository.Orphaned
 	appToSend.Limit.PayPlan.Type = "wrong"
 
 	app, err = driver.WriteApplication(appToSend)
-	c.Equal(ErrInvalidPayPlanType, err)
+	c.Equal(repository.ErrInvalidPayPlanType, err)
 	c.Empty(app)
 }
 
@@ -438,7 +438,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
 		Status: "wrong",
 	})
-	c.Equal(ErrInvalidAppStatus, err)
+	c.Equal(repository.ErrInvalidAppStatus, err)
 
 	/* Update errors as expected when invalid pay plan type provided */
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
@@ -449,7 +449,30 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 			},
 		},
 	})
-	c.Equal(ErrInvalidPayPlanType, err)
+	c.Equal(repository.ErrInvalidPayPlanType, err)
+
+	/* Update errors as expected when attempting to update a non Enterprise Plan with a custom limit */
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+		Status: repository.Orphaned,
+		Limit: &repository.AppLimit{
+			PayPlan: repository.PayPlan{
+				Type: repository.FreetierV0,
+			},
+			CustomLimit: 12345,
+		},
+	})
+	c.Equal(repository.ErrNotEnterprisePlan, err)
+
+	/* Update errors as expected when attempting to update an Enterprise Plan without a custom limit */
+	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
+		Status: repository.Orphaned,
+		Limit: &repository.AppLimit{
+			PayPlan: repository.PayPlan{
+				Type: repository.Enterprise,
+			},
+		},
+	})
+	c.Equal(repository.ErrEnterprisePlanNeedsCustomLimit, err)
 }
 
 func TestPostgresDriver_RemoveApplication(t *testing.T) {
