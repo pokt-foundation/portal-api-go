@@ -3,7 +3,6 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
@@ -73,12 +72,6 @@ const (
 	UPDATE notification_settings
 	SET signed_up = :signed_up, on_quarter = :on_quarter, on_half = :on_half, on_three_quarters = :on_three_quarters, on_full = :on_full
 	WHERE application_id = :application_id`
-)
-
-var (
-	ErrInvalidAppStatus   = errors.New("invalid app status")
-	ErrInvalidPayPlanType = errors.New("invalid pay plan type")
-	ErrNotEnterprisePlan  = errors.New("custom limits may only be set on enterprise plans")
 )
 
 type dbApplication struct {
@@ -582,16 +575,9 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 
 // WriteApplication saves input application in the database
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
-	if !repository.ValidAppStatuses[app.Status] {
-		return nil, ErrInvalidAppStatus
-	}
-
-	if !repository.ValidPayPlanTypes[app.Limit.PayPlan.Type] {
-		return nil, ErrInvalidPayPlanType
-	}
-
-	if app.Limit.PayPlan.Type != repository.Enterprise && app.Limit.CustomLimit != 0 {
-		return nil, ErrNotEnterprisePlan
+	appIsInvalid := app.IsInvalid()
+	if appIsInvalid != nil {
+		return nil, appIsInvalid
 	}
 
 	id, err := generateRandomID()
@@ -651,22 +637,9 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return ErrMissingID
 	}
 
-	if fieldsToUpdate == nil {
-		return ErrNoFieldsToUpdate
-	}
-
-	if !repository.ValidAppStatuses[fieldsToUpdate.Status] {
-		return ErrInvalidAppStatus
-	}
-
-	if fieldsToUpdate.Limit != nil && !repository.ValidPayPlanTypes[fieldsToUpdate.Limit.PayPlan.Type] {
-		return ErrInvalidPayPlanType
-	}
-
-	if fieldsToUpdate.Limit != nil &&
-		fieldsToUpdate.Limit.PayPlan.Type != repository.Enterprise &&
-		fieldsToUpdate.Limit.CustomLimit != 0 {
-		return ErrNotEnterprisePlan
+	invalidUpdate := fieldsToUpdate.IsInvalid()
+	if invalidUpdate != nil {
+		return invalidUpdate
 	}
 
 	tx, err := d.Beginx()

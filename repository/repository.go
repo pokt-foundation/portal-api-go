@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -16,6 +17,14 @@ type Repository interface {
 	GetBlockchain(alias string) (Blockchain, error)
 	GetLoadBalancer(id string) (LoadBalancer, error)
 }
+
+var (
+	ErrNoFieldsToUpdate               = errors.New("no fields to update")
+	ErrInvalidAppStatus               = errors.New("invalid app status")
+	ErrInvalidPayPlanType             = errors.New("invalid pay plan type")
+	ErrNotEnterprisePlan              = errors.New("custom limits may only be set on enterprise plans")
+	ErrEnterprisePlanNeedsCustomLimit = errors.New("enterprise plans must have a custom limit set")
+)
 
 // TODO: identify fields that should be stored encrypted in-memory
 type Application struct {
@@ -48,6 +57,21 @@ func (a *Application) DailyLimit() int {
 	}
 
 	return a.Limit.PayPlan.Limit
+}
+
+func (a *Application) IsInvalid() error {
+	if !ValidAppStatuses[a.Status] {
+		return ErrInvalidAppStatus
+	}
+
+	if !ValidPayPlanTypes[a.Limit.PayPlan.Type] {
+		return ErrInvalidPayPlanType
+	}
+
+	if a.Limit.PayPlan.Type != Enterprise && a.Limit.CustomLimit != 0 {
+		return ErrNotEnterprisePlan
+	}
+	return nil
 }
 
 type AppLimit struct {
@@ -147,6 +171,25 @@ type UpdateApplication struct {
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 	Limit                *AppLimit             `json:"appLimit,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`
+}
+
+func (u *UpdateApplication) IsInvalid() error {
+	if u == nil {
+		return ErrNoFieldsToUpdate
+	}
+	if !ValidAppStatuses[u.Status] {
+		return ErrInvalidAppStatus
+	}
+	if u.Limit != nil && !ValidPayPlanTypes[u.Limit.PayPlan.Type] {
+		return ErrInvalidPayPlanType
+	}
+	if u.Limit != nil && u.Limit.PayPlan.Type != Enterprise && u.Limit.CustomLimit != 0 {
+		return ErrNotEnterprisePlan
+	}
+	if u.Limit != nil && u.Limit.PayPlan.Type == Enterprise && u.Limit.CustomLimit == 0 {
+		return ErrEnterprisePlanNeedsCustomLimit
+	}
+	return nil
 }
 
 type UpdateFirstDateSurpassed struct {
