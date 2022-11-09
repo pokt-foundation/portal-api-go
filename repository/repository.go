@@ -45,6 +45,9 @@ type Application struct {
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
 	Limit                AppLimit             `json:"limit"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
+
+	// DEPRECATED - TODO remove once all repos updated
+	PayPlanType PayPlanType `json:"payPlanType,omitempty"`
 }
 
 func (a *Application) Table() Table {
