@@ -59,7 +59,7 @@ func (a *Application) DailyLimit() int {
 	return a.Limit.PayPlan.Limit
 }
 
-func (a *Application) IsInvalid() error {
+func (a *Application) Validate() error {
 	if !ValidAppStatuses[a.Status] {
 		return ErrInvalidAppStatus
 	}
@@ -173,7 +173,7 @@ type UpdateApplication struct {
 	Remove               bool                  `json:"remove,omitempty"`
 }
 
-func (u *UpdateApplication) IsInvalid() error {
+func (u *UpdateApplication) Validate() error {
 	if u == nil {
 		return ErrNoFieldsToUpdate
 	}

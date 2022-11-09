@@ -575,7 +575,7 @@ func (d *PostgresDriver) ReadApplications() ([]*repository.Application, error) {
 
 // WriteApplication saves input application in the database
 func (d *PostgresDriver) WriteApplication(app *repository.Application) (*repository.Application, error) {
-	appIsInvalid := app.IsInvalid()
+	appIsInvalid := app.Validate()
 	if appIsInvalid != nil {
 		return nil, appIsInvalid
 	}
@@ -637,7 +637,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		return ErrMissingID
 	}
 
-	invalidUpdate := fieldsToUpdate.IsInvalid()
+	invalidUpdate := fieldsToUpdate.Validate()
 	if invalidUpdate != nil {
 		return invalidUpdate
 	}
