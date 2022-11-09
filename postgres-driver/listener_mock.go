@@ -50,12 +50,21 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 			Description:        app.Description,
 			Owner:              app.Owner,
 			URL:                app.URL,
-			PayPlanType:        string(app.PayPlanType),
 			Status:             string(app.Status),
 			CreatedAt:          app.CreatedAt.Format(psqlDateLayout),
 			UpdatedAt:          app.UpdatedAt.Format(psqlDateLayout),
 			FirstDateSurpassed: app.FirstDateSurpassed.Format(psqlDateLayout),
 			Dummy:              app.Dummy,
+		},
+	})
+
+	inputs = append(inputs, inputStruct{
+		action: sideTablesAction,
+		table:  repository.TableAppLimits,
+		input: dbAppLimitJSON{
+			ApplicationID: app.ID,
+			PlanType:      app.Limit.PayPlan.Type,
+			CustomLimit:   app.Limit.CustomLimit,
 		},
 	})
 

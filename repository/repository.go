@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -17,29 +18,70 @@ type Repository interface {
 	GetLoadBalancer(id string) (LoadBalancer, error)
 }
 
+var (
+	ErrNoFieldsToUpdate               = errors.New("no fields to update")
+	ErrInvalidAppStatus               = errors.New("invalid app status")
+	ErrInvalidPayPlanType             = errors.New("invalid pay plan type")
+	ErrNotEnterprisePlan              = errors.New("custom limits may only be set on enterprise plans")
+	ErrEnterprisePlanNeedsCustomLimit = errors.New("enterprise plans must have a custom limit set")
+)
+
 // TODO: identify fields that should be stored encrypted in-memory
 type Application struct {
-	ID                   string               `json:"id"`
-	UserID               string               `json:"userID"`
-	Name                 string               `json:"name"`
-	ContactEmail         string               `json:"contactEmail"`
-	Description          string               `json:"description"`
-	Owner                string               `json:"owner"`
-	URL                  string               `json:"url"`
-	Status               AppStatus            `json:"status"`
-	Dummy                bool                 `json:"dummy"`
-	PayPlanType          PayPlanType          `json:"payPlanType,omitempty"`
-	FirstDateSurpassed   time.Time            `json:"firstDateSurpassed"`
+	ID                 string    `json:"id"`
+	UserID             string    `json:"userID"`
+	Name               string    `json:"name"`
+	ContactEmail       string    `json:"contactEmail"`
+	Description        string    `json:"description"`
+	Owner              string    `json:"owner"`
+	URL                string    `json:"url"`
+	Dummy              bool      `json:"dummy"`
+	Status             AppStatus `json:"status"`
+	FirstDateSurpassed time.Time `json:"firstDateSurpassed"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+
 	GatewayAAT           GatewayAAT           `json:"gatewayAAT"`
 	GatewaySettings      GatewaySettings      `json:"gatewaySettings"`
+	Limit                AppLimit             `json:"limit"`
 	NotificationSettings NotificationSettings `json:"notificationSettings"`
-	Limits               AppLimits            `json:"limits"`
-	CreatedAt            time.Time            `json:"createdAt"`
-	UpdatedAt            time.Time            `json:"updatedAt"`
 }
 
 func (a *Application) Table() Table {
 	return TableApplications
+}
+
+func (a *Application) DailyLimit() int {
+	if a.Limit.PayPlan.Type == Enterprise {
+		return a.Limit.CustomLimit
+	}
+
+	return a.Limit.PayPlan.Limit
+}
+
+func (a *Application) Validate() error {
+	if !ValidAppStatuses[a.Status] {
+		return ErrInvalidAppStatus
+	}
+
+	if !ValidPayPlanTypes[a.Limit.PayPlan.Type] {
+		return ErrInvalidPayPlanType
+	}
+
+	if a.Limit.PayPlan.Type != Enterprise && a.Limit.CustomLimit != 0 {
+		return ErrNotEnterprisePlan
+	}
+	return nil
+}
+
+type AppLimit struct {
+	ID          string  `json:"id,omitempty"`
+	PayPlan     PayPlan `json:"payPlan"`
+	CustomLimit int     `json:"customLimit"`
+}
+
+func (a *AppLimit) Table() Table {
+	return TableAppLimits
 }
 
 type AppStatus string
@@ -81,6 +123,11 @@ var (
 	}
 )
 
+type PayPlan struct {
+	Type  PayPlanType `json:"planType"`
+	Limit int         `json:"dailyLimit"`
+}
+
 type PayPlanType string
 
 const (
@@ -89,6 +136,7 @@ const (
 	TestPlan90k  PayPlanType = "TEST_PLAN_90K"
 	FreetierV0   PayPlanType = "FREETIER_V0"
 	PayAsYouGoV0 PayPlanType = "PAY_AS_YOU_GO_V0"
+	Enterprise   PayPlanType = "ENTERPRISE"
 )
 
 var (
@@ -99,6 +147,7 @@ var (
 		TestPlan90k:  true,
 		FreetierV0:   true,
 		PayAsYouGoV0: true,
+		Enterprise:   true,
 	}
 )
 
@@ -113,20 +162,34 @@ type AppLimits struct {
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
 }
 
-type PayPlan struct {
-	PlanType   PayPlanType `json:"planType"`
-	DailyLimit int         `json:"dailyLimit"`
-}
-
 // UpdateApplication struct holding possible fields to update
 type UpdateApplication struct {
 	Name                 string                `json:"name,omitempty"`
 	Status               AppStatus             `json:"status,omitempty"`
-	PayPlanType          PayPlanType           `json:"payPlanType,omitempty"`
 	FirstDateSurpassed   time.Time             `json:"firstDateSurpassed,omitempty"`
 	GatewaySettings      *GatewaySettings      `json:"gatewaySettings,omitempty"`
 	NotificationSettings *NotificationSettings `json:"notificationSettings,omitempty"`
+	Limit                *AppLimit             `json:"appLimit,omitempty"`
 	Remove               bool                  `json:"remove,omitempty"`
+}
+
+func (u *UpdateApplication) Validate() error {
+	if u == nil {
+		return ErrNoFieldsToUpdate
+	}
+	if !ValidAppStatuses[u.Status] {
+		return ErrInvalidAppStatus
+	}
+	if u.Limit != nil && !ValidPayPlanTypes[u.Limit.PayPlan.Type] {
+		return ErrInvalidPayPlanType
+	}
+	if u.Limit != nil && u.Limit.PayPlan.Type != Enterprise && u.Limit.CustomLimit != 0 {
+		return ErrNotEnterprisePlan
+	}
+	if u.Limit != nil && u.Limit.PayPlan.Type == Enterprise && u.Limit.CustomLimit == 0 {
+		return ErrEnterprisePlanNeedsCustomLimit
+	}
+	return nil
 }
 
 type UpdateFirstDateSurpassed struct {
@@ -462,16 +525,17 @@ func loadData(file string, data interface{}) error {
 type Table string
 
 const (
+	TableLoadBalancers        Table = "loadbalancers"
+	TableStickinessOptions    Table = "stickiness_options"
+	TableLbApps               Table = "lb_apps"
 	TableApplications         Table = "applications"
-	TableBlockchains          Table = "blockchains"
+	TableAppLimits            Table = "app_limits"
 	TableGatewayAAT           Table = "gateway_aat"
 	TableGatewaySettings      Table = "gateway_settings"
-	TableLoadBalancers        Table = "loadbalancers"
 	TableNotificationSettings Table = "notification_settings"
+	TableBlockchains          Table = "blockchains"
 	TableRedirects            Table = "redirects"
-	TableStickinessOptions    Table = "stickiness_options"
 	TableSyncCheckOptions     Table = "sync_check_options"
-	TableLbApps               Table = "lb_apps"
 )
 
 type Action string

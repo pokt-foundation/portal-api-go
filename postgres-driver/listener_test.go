@@ -25,6 +25,10 @@ func TestListen(t *testing.T) {
 				GatewaySettings: repository.GatewaySettings{
 					SecretKey: "123",
 				},
+				Limit: repository.AppLimit{
+					PayPlan:     repository.PayPlan{Type: repository.Enterprise},
+					CustomLimit: 2000000,
+				},
 				NotificationSettings: repository.NotificationSettings{
 					Full: true,
 				},
@@ -43,6 +47,15 @@ func TestListen(t *testing.T) {
 					Data: &repository.GatewayAAT{
 						ID:      "321",
 						Address: "123",
+					},
+				},
+				repository.TableAppLimits: {
+					Table:  repository.TableAppLimits,
+					Action: repository.ActionUpdate,
+					Data: &repository.AppLimit{
+						ID:          "321",
+						PayPlan:     repository.PayPlan{Type: repository.Enterprise, Limit: 0},
+						CustomLimit: 2000000,
 					},
 				},
 				repository.TableGatewaySettings: {
