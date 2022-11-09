@@ -17,7 +17,9 @@ const (
 
 var (
 	// ErrNoFieldsToUpdate error when there are no fields to update
+	// TODO - remove once moved to update structs IsValid methods
 	ErrNoFieldsToUpdate = errors.New("no fields to update")
+
 	// ErrMissingID error when ID is missing
 	ErrMissingID = errors.New("missing id")
 

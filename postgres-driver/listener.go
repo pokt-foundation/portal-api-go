@@ -18,6 +18,42 @@ type notification struct {
 	Data   any               `json:"data"`
 }
 
+func (n notification) parseLoadBalancerNotification() *repository.Notification {
+	rawData, _ := json.Marshal(n.Data)
+	var dbLoadBalancer dbLoadBalancerJSON
+	_ = json.Unmarshal(rawData, &dbLoadBalancer)
+
+	return &repository.Notification{
+		Table:  n.Table,
+		Action: n.Action,
+		Data:   dbLoadBalancer.toOutput(),
+	}
+}
+
+func (n notification) parseStickinessOptionsNotification() *repository.Notification {
+	rawData, _ := json.Marshal(n.Data)
+	var dbStickinessOpts dbStickinessOptionsJSON
+	_ = json.Unmarshal(rawData, &dbStickinessOpts)
+
+	return &repository.Notification{
+		Table:  n.Table,
+		Action: n.Action,
+		Data:   dbStickinessOpts.toOutput(),
+	}
+}
+
+func (n notification) parseLbApps() *repository.Notification {
+	rawData, _ := json.Marshal(n.Data)
+	var lbApp repository.LbApp
+	_ = json.Unmarshal(rawData, &lbApp)
+
+	return &repository.Notification{
+		Table:  n.Table,
+		Action: n.Action,
+		Data:   &lbApp,
+	}
+}
+
 func (n notification) parseApplicationNotification() *repository.Notification {
 	rawData, _ := json.Marshal(n.Data)
 	var dbApp dbAppJSON
@@ -30,15 +66,15 @@ func (n notification) parseApplicationNotification() *repository.Notification {
 	}
 }
 
-func (n notification) parseBlockchainNotification() *repository.Notification {
+func (n notification) parseAppLimitNotification() *repository.Notification {
 	rawData, _ := json.Marshal(n.Data)
-	var dbBlockchain dbBlockchainJSON
-	_ = json.Unmarshal(rawData, &dbBlockchain)
+	var dbAppLimit dbAppLimitJSON
+	_ = json.Unmarshal(rawData, &dbAppLimit)
 
 	return &repository.Notification{
 		Table:  n.Table,
 		Action: n.Action,
-		Data:   dbBlockchain.toOutput(),
+		Data:   dbAppLimit.toOutput(),
 	}
 }
 
@@ -66,18 +102,6 @@ func (n notification) parseGatewaySettingsNotification() *repository.Notificatio
 	}
 }
 
-func (n notification) parseLoadBalancerNotification() *repository.Notification {
-	rawData, _ := json.Marshal(n.Data)
-	var dbLoadBalancer dbLoadBalancerJSON
-	_ = json.Unmarshal(rawData, &dbLoadBalancer)
-
-	return &repository.Notification{
-		Table:  n.Table,
-		Action: n.Action,
-		Data:   dbLoadBalancer.toOutput(),
-	}
-}
-
 func (n notification) parseNotificationSettingsNotification() *repository.Notification {
 	rawData, _ := json.Marshal(n.Data)
 	var dbNotificationSettings dbNotificationSettingsJSON
@@ -87,6 +111,18 @@ func (n notification) parseNotificationSettingsNotification() *repository.Notifi
 		Table:  n.Table,
 		Action: n.Action,
 		Data:   dbNotificationSettings.toOutput(),
+	}
+}
+
+func (n notification) parseBlockchainNotification() *repository.Notification {
+	rawData, _ := json.Marshal(n.Data)
+	var dbBlockchain dbBlockchainJSON
+	_ = json.Unmarshal(rawData, &dbBlockchain)
+
+	return &repository.Notification{
+		Table:  n.Table,
+		Action: n.Action,
+		Data:   dbBlockchain.toOutput(),
 	}
 }
 
@@ -102,18 +138,6 @@ func (n notification) parseRedirectNotification() *repository.Notification {
 	}
 }
 
-func (n notification) parseStickinessOptionsNotification() *repository.Notification {
-	rawData, _ := json.Marshal(n.Data)
-	var dbStickinessOpts dbStickinessOptionsJSON
-	_ = json.Unmarshal(rawData, &dbStickinessOpts)
-
-	return &repository.Notification{
-		Table:  n.Table,
-		Action: n.Action,
-		Data:   dbStickinessOpts.toOutput(),
-	}
-}
-
 func (n notification) parseSyncOptionsNotification() *repository.Notification {
 	rawData, _ := json.Marshal(n.Data)
 	var dbSyncOpts dbSyncCheckOptionsJSON
@@ -126,40 +150,33 @@ func (n notification) parseSyncOptionsNotification() *repository.Notification {
 	}
 }
 
-func (n notification) parseLbApps() *repository.Notification {
-	rawData, _ := json.Marshal(n.Data)
-	var lbApp repository.LbApp
-	_ = json.Unmarshal(rawData, &lbApp)
-
-	return &repository.Notification{
-		Table:  n.Table,
-		Action: n.Action,
-		Data:   &lbApp,
-	}
-}
-
 func (n notification) parseNotification() *repository.Notification {
 	switch n.Table {
+	case repository.TableLoadBalancers:
+		return n.parseLoadBalancerNotification()
+	case repository.TableStickinessOptions:
+		return n.parseStickinessOptionsNotification()
+
+	case repository.TableLbApps:
+		return n.parseLbApps()
+
 	case repository.TableApplications:
 		return n.parseApplicationNotification()
-	case repository.TableBlockchains:
-		return n.parseBlockchainNotification()
+	case repository.TableAppLimits:
+		return n.parseAppLimitNotification()
 	case repository.TableGatewayAAT:
 		return n.parseGatewayAATNotification()
 	case repository.TableGatewaySettings:
 		return n.parseGatewaySettingsNotification()
-	case repository.TableLoadBalancers:
-		return n.parseLoadBalancerNotification()
 	case repository.TableNotificationSettings:
 		return n.parseNotificationSettingsNotification()
+
+	case repository.TableBlockchains:
+		return n.parseBlockchainNotification()
 	case repository.TableRedirects:
 		return n.parseRedirectNotification()
-	case repository.TableStickinessOptions:
-		return n.parseStickinessOptionsNotification()
 	case repository.TableSyncCheckOptions:
 		return n.parseSyncOptionsNotification()
-	case repository.TableLbApps:
-		return n.parseLbApps()
 	}
 
 	return nil
