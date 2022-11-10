@@ -122,6 +122,24 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 	return inputs
 }
 
+func appLimitInputs(sideTablesAction repository.Action, content repository.SavedOnDB) []inputStruct {
+	appLimit := content.(*repository.AppLimit)
+
+	var inputs []inputStruct
+
+	inputs = append(inputs, inputStruct{
+		action: sideTablesAction,
+		table:  repository.TableAppLimits,
+		input: dbAppLimitJSON{
+			ApplicationID: appLimit.ID,
+			PlanType:      appLimit.PayPlan.Type,
+			CustomLimit:   0,
+		},
+	})
+
+	return inputs
+}
+
 func blockchainInputs(mainTableAction, sideTablesAction repository.Action, content repository.SavedOnDB) []inputStruct {
 	blockchain := content.(*repository.Blockchain)
 
@@ -256,6 +274,8 @@ func mockContent(mainTableAction, sideTablesAction repository.Action, content re
 	switch content.(type) {
 	case *repository.Application:
 		inputs = applicationInputs(mainTableAction, sideTablesAction, content)
+	case *repository.AppLimit:
+		inputs = appLimitInputs(sideTablesAction, content)
 	case *repository.Blockchain:
 		inputs = blockchainInputs(mainTableAction, sideTablesAction, content)
 	case *repository.LoadBalancer:
