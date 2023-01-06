@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	logger "github.com/sirupsen/logrus"
+	"github.com/pokt-foundation/portal-api-go/logger"
+	LogrusLogger "github.com/sirupsen/logrus"
 )
 
 type Repository interface {
@@ -85,6 +88,19 @@ type AppLimit struct {
 
 func (a *AppLimit) Table() Table {
 	return TableAppLimits
+}
+
+func (a *AppLimit) LogName() string {
+	name := "AppLimit"
+	return name
+}
+
+func (a *AppLimit) LogProperties() map[string]interface{} {
+	return map[string]interface{}{
+		"ID":          a.ID,
+		"PayPlan":     a.PayPlan,
+		"CustomLimit": a.CustomLimit,
+	}
 }
 
 type AppStatus string
@@ -226,6 +242,21 @@ type GatewaySettings struct {
 }
 
 func (s *GatewaySettings) Table() Table {
+
+	log := logger.New("portal-api-go")
+
+	buf := bytes.NewBufferString("")
+	log.Output = buf
+
+	app := &AppLimit{ID: "isdsd", PayPlan: PayPlan{Type: PayAsYouGoV0}}
+
+	log.Info(context.Background(), "lala", "nose", []logger.LoggerInterface{app})
+
+	output := buf.String()
+	if strings.Contains(output, "lala") {
+		fmt.Println("Yes, it happened")
+	}
+
 	return TableGatewaySettings
 }
 
@@ -383,8 +414,8 @@ type AppStickiness struct {
 	NodeAddress   string
 }
 
-func NewRepository(jsonFilesPath string, log *logger.Logger) (Repository, error) {
-	l := log.WithFields(logger.Fields{"path": jsonFilesPath})
+func NewRepository(jsonFilesPath string, log *LogrusLogger.Logger) (Repository, error) {
+	l := log.WithFields(LogrusLogger.Fields{"path": jsonFilesPath})
 
 	// TODO: use a db (postgres?) backend once migration from mongo is done.
 	//	for now, just load from json files
@@ -408,7 +439,7 @@ func NewRepository(jsonFilesPath string, log *logger.Logger) (Repository, error)
 		return nil, fmt.Errorf("Error loading load balancers: %v", err)
 	}
 	if len(invalidAppIDs) > 0 {
-		l.WithFields(logger.Fields{"invalidApplicationIDs": invalidAppIDs}).Warnf("One or more of the specified application IDs were invalid.")
+		l.WithFields(LogrusLogger.Fields{"invalidApplicationIDs": invalidAppIDs}).Warnf("One or more of the specified application IDs were invalid.")
 	}
 
 	return &cachingRepository{
@@ -426,7 +457,7 @@ type cachingRepository struct {
 	blockchains   []Blockchain
 	loadbalancers map[string]LoadBalancer
 
-	log *logger.Logger
+	log *LogrusLogger.Logger
 }
 
 func (c *cachingRepository) GetApplication(id string) (Application, error) {
@@ -465,6 +496,7 @@ func blockchainForAlias(alias string, blockchains []Blockchain) (Blockchain, err
 }
 
 // TODO: these can be moved to the repository_test.go file once we have integrated with a db.
+//
 //	They will still be needed for testing purposes, loading a subset of data from json-formatted files.
 func loadBlockchains(file string) ([]Blockchain, error) {
 	var blockchains []Blockchain
