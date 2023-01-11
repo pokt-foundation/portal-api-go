@@ -85,9 +85,6 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 	}
 
 	if !gatewaySettingsIsNull(app.GatewaySettings) {
-		contracts, methods := marshalWhitelistContractsAndMethods(app.GatewaySettings.WhitelistContracts,
-			app.GatewaySettings.WhitelistMethods)
-
 		inputs = append(inputs, inputStruct{
 			action: sideTablesAction,
 			table:  repository.TableGatewaySettings,
@@ -95,8 +92,8 @@ func applicationInputs(mainTableAction, sideTablesAction repository.Action, cont
 				ApplicationID:        app.ID,
 				SecretKey:            app.GatewaySettings.SecretKey,
 				SecretKeyRequired:    app.GatewaySettings.SecretKeyRequired,
-				WhitelistContracts:   contracts,
-				WhitelistMethods:     methods,
+				WhitelistContracts:   app.GatewaySettings.WhitelistContracts,
+				WhitelistMethods:     app.GatewaySettings.WhitelistMethods,
 				WhitelistOrigins:     app.GatewaySettings.WhitelistOrigins,
 				WhitelistUserAgents:  app.GatewaySettings.WhitelistUserAgents,
 				WhitelistBlockchains: app.GatewaySettings.WhitelistBlockchains,

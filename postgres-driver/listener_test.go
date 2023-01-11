@@ -24,6 +24,9 @@ func TestListen(t *testing.T) {
 				},
 				GatewaySettings: repository.GatewaySettings{
 					SecretKey: "123",
+					WhitelistContracts: []repository.WhitelistContract{
+						{BlockchainID: "001", Contracts: []string{"test123", "test456"}},
+					},
 				},
 				Limit: repository.AppLimit{
 					PayPlan:     repository.PayPlan{Type: repository.Enterprise},
@@ -62,10 +65,11 @@ func TestListen(t *testing.T) {
 					Table:  repository.TableGatewaySettings,
 					Action: repository.ActionUpdate,
 					Data: &repository.GatewaySettings{
-						ID:                 "321",
-						SecretKey:          "123",
-						WhitelistContracts: []repository.WhitelistContract{},
-						WhitelistMethods:   []repository.WhitelistMethod{},
+						ID:        "321",
+						SecretKey: "123",
+						WhitelistContracts: []repository.WhitelistContract{
+							{BlockchainID: "001", Contracts: []string{"test123", "test456"}},
+						},
 					},
 				},
 				repository.TableNotificationSettings: {
