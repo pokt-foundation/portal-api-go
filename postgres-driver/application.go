@@ -13,23 +13,119 @@ import (
 
 const (
 	selectApplications = `
-	SELECT a.application_id, a.contact_email, a.created_at, a.description, a.dummy, a.name, a.owner, a.status, a.updated_at, a.url, a.user_id, a.first_date_surpassed, 
-	ga.address AS ga_address, ga.client_public_key AS ga_client_public_key, ga.private_key AS ga_private_key, ga.public_key AS ga_public_key, ga.signature AS ga_signature, ga.version AS ga_version,
-	gs.secret_key, gs.secret_key_required, gs.whitelist_blockchains, gs.whitelist_contracts, gs.whitelist_methods, gs.whitelist_origins, gs.whitelist_user_agents,
-	ns.signed_up, ns.on_quarter, ns.on_half, ns.on_three_quarters, ns.on_full,
-	al.custom_limit, al.pay_plan, pp.daily_limit as plan_limit
+	WITH app_whitelists AS (
+		SELECT application_id
+		FROM whitelist_contracts
+		UNION
+		SELECT application_id
+		FROM whitelist_methods
+	)
+	SELECT a.application_id,
+		a.contact_email,
+		a.created_at,
+		a.description,
+		a.dummy,
+		a.name,
+		a.owner,
+		a.status,
+		a.updated_at,
+		a.url,
+		a.user_id,
+		a.first_date_surpassed,
+		ga.address AS ga_address,
+		ga.client_public_key AS ga_client_public_key,
+		ga.private_key AS ga_private_key,
+		ga.public_key AS ga_public_key,
+		ga.signature AS ga_signature,
+		ga.version AS ga_version,
+		gs.secret_key,
+		gs.secret_key_required,
+		gs.whitelist_blockchains,
+		gs.whitelist_origins,
+		gs.whitelist_user_agents,
+		ns.signed_up,
+		ns.on_quarter,
+		ns.on_half,
+		ns.on_three_quarters,
+		ns.on_full,
+		al.custom_limit,
+		al.pay_plan,
+		pp.daily_limit as plan_limit,
+		CASE
+			WHEN wc.application_id IS NOT NULL THEN json_agg(
+				json_build_object(
+					'blockchain_id',
+					wc.blockchain_id,
+					'contracts',
+					wc.contracts
+				)
+			)::VARCHAR
+			ELSE null
+		END as whitelist_contracts,
+		CASE
+			WHEN wm.application_id IS NOT NULL THEN json_agg(
+				json_build_object(
+					'blockchain_id',
+					wm.blockchain_id,
+					'methods',
+					wm.methods
+				)
+			)::VARCHAR
+			ELSE null
+		END as whitelist_methods
 	FROM applications AS a
-	LEFT JOIN gateway_aat AS ga ON a.application_id=ga.application_id
-	LEFT JOIN gateway_settings AS gs ON a.application_id=gs.application_id
-	LEFT JOIN notification_settings AS ns ON a.application_id=ns.application_id
-	LEFT JOIN app_limits AS al ON a.application_id=al.application_id
-	LEFT JOIN pay_plans AS pp ON al.pay_plan=pp.plan_type`
+		LEFT JOIN gateway_aat AS ga ON a.application_id = ga.application_id
+		LEFT JOIN gateway_settings AS gs ON a.application_id = gs.application_id
+		LEFT JOIN notification_settings AS ns ON a.application_id = ns.application_id
+		LEFT JOIN app_limits AS al ON a.application_id = al.application_id
+		LEFT JOIN pay_plans AS pp ON al.pay_plan = pp.plan_type
+		LEFT JOIN whitelist_contracts wc ON a.application_id = wc.application_id
+		LEFT JOIN whitelist_methods wm ON a.application_id = wm.application_id
+	GROUP BY a.application_id,
+		a.contact_email,
+		a.created_at,
+		a.description,
+		a.dummy,
+		a.name,
+		a.owner,
+		a.status,
+		a.updated_at,
+		a.url,
+		a.user_id,
+		a.first_date_surpassed,
+		ga.address,
+		ga.client_public_key,
+		ga.private_key,
+		ga.public_key,
+		ga.signature,
+		ga.version,
+		gs.secret_key,
+		gs.secret_key_required,
+		gs.whitelist_blockchains,
+		gs.whitelist_origins,
+		gs.whitelist_user_agents,
+		ns.signed_up,
+		ns.on_quarter,
+		ns.on_half,
+		ns.on_three_quarters,
+		ns.on_full,
+		al.custom_limit,
+		al.pay_plan,
+		pp.daily_limit,
+		wc.application_id,
+		wm.application_id`
 	selectAppLimit = `
 	SELECT application_id, pay_plan, custom_limit
 	FROM app_limits WHERE application_id = $1`
 	selectGatewaySettings = `
-	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents
+	SELECT application_id, secret_key, secret_key_required, whitelist_blockchains, whitelist_origins, whitelist_user_agents
 	FROM gateway_settings WHERE application_id = $1`
+	selectWhitelistContracts = `
+	SELECT application_id, blockchain_id, contracts
+	FROM whitelist_contracts WHERE application_id = $1 AND blockchain_id = $2`
+	selectWhitelistMethods = `
+	SELECT application_id, blockchain_id, methods
+	FROM whitelist_methods WHERE application_id = $1 AND blockchain_id = $2`
 	selectNotificationSettings = `
 	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
 	FROM notification_settings WHERE application_id = $1`
@@ -43,8 +139,8 @@ const (
 	INSERT into gateway_aat (application_id, address, client_public_key, private_key, public_key, signature, version)
 	VALUES (:application_id, :address, :client_public_key, :private_key, :public_key, :signature, :version)`
 	insertGatewaySettingsScript = `
-	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_contracts, whitelist_methods, whitelist_origins, whitelist_user_agents, whitelist_blockchains)
-	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_contracts, :whitelist_methods, :whitelist_origins, :whitelist_user_agents, :whitelist_blockchains)`
+	INSERT into gateway_settings (application_id, secret_key, secret_key_required, whitelist_origins, whitelist_user_agents, whitelist_blockchains)
+	VALUES (:application_id, :secret_key, :secret_key_required, :whitelist_origins, :whitelist_user_agents, :whitelist_blockchains)`
 	insertNotificationSettingsScript = `
 	INSERT into notification_settings (application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full)
 	VALUES (:application_id, :signed_up, :on_quarter, :on_half, :on_three_quarters, :on_full)`
@@ -66,8 +162,22 @@ const (
 	WHERE application_id = $3`
 	updateGatewaySettings = `
 	UPDATE gateway_settings
-	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_contracts = :whitelist_contracts, whitelist_methods = :whitelist_methods, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents, whitelist_blockchains = :whitelist_blockchains
+	SET secret_key = :secret_key, secret_key_required = :secret_key_required, whitelist_origins = :whitelist_origins, whitelist_user_agents = :whitelist_user_agents, whitelist_blockchains = :whitelist_blockchains
 	WHERE application_id = :application_id`
+	insertWhitelistContractsScript = `
+	INSERT INTO whitelist_contracts (application_id, blockchain_id, contracts)
+	VALUES (:application_id, :blockchain_id, :contracts)`
+	insertWhitelistMethodsScript = `
+	INSERT INTO whitelist_methods (application_id, blockchain_id, methods)
+	VALUES (:application_id, :blockchain_id, :methods)`
+	updateWhitelistContractsScript = `
+	UPDATE whitelist_contracts
+	SET contracts = :contracts
+	WHERE application_id = :application_id AND blockchain_id = :blockchain_id`
+	updateWhitelistMethodsScript = `
+	UPDATE whitelist_methods
+	SET methods = :methods
+	WHERE application_id = :application_id AND blockchain_id = :blockchain_id`
 	updateNotificationSettings = `
 	UPDATE notification_settings
 	SET signed_up = :signed_up, on_quarter = :on_quarter, on_half = :on_half, on_three_quarters = :on_three_quarters, on_full = :on_full
@@ -253,10 +363,10 @@ func (i *insertAppLimit) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertAppLimit) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertAppLimit) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var limit insertAppLimit
 
-	err := driver.Get(&limit, selectAppLimit, appID)
+	err := driver.Get(&limit, selectAppLimit, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -333,14 +443,14 @@ func extractInsertGatewayAAT(app *repository.Application) *insertGatewayAAT {
 }
 
 type dbGatewaySettingsJSON struct {
-	ApplicationID        string   `json:"application_id"`
-	SecretKey            string   `json:"secret_key"`
-	SecretKeyRequired    bool     `json:"secret_key_required"`
-	WhitelistContracts   string   `json:"whitelist_contracts"`
-	WhitelistMethods     string   `json:"whitelist_methods"`
-	WhitelistOrigins     []string `json:"whitelist_origins"`
-	WhitelistUserAgents  []string `json:"whitelist_user_agents"`
-	WhitelistBlockchains []string `json:"whitelist_blockchains"`
+	ApplicationID        string                         `json:"application_id"`
+	SecretKey            string                         `json:"secret_key"`
+	SecretKeyRequired    bool                           `json:"secret_key_required"`
+	WhitelistContracts   []repository.WhitelistContract `json:"whitelist_contracts"`
+	WhitelistMethods     []repository.WhitelistMethod   `json:"whitelist_methods"`
+	WhitelistOrigins     []string                       `json:"whitelist_origins"`
+	WhitelistUserAgents  []string                       `json:"whitelist_user_agents"`
+	WhitelistBlockchains []string                       `json:"whitelist_blockchains"`
 }
 
 func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
@@ -348,11 +458,39 @@ func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
 		ID:                   j.ApplicationID,
 		SecretKey:            j.SecretKey,
 		SecretKeyRequired:    j.SecretKeyRequired,
-		WhitelistContracts:   stringToWhitelistContracts(j.WhitelistContracts),
-		WhitelistMethods:     stringToWhitelistMethods(j.WhitelistMethods),
+		WhitelistContracts:   j.WhitelistContracts,
+		WhitelistMethods:     j.WhitelistMethods,
 		WhitelistOrigins:     j.WhitelistOrigins,
 		WhitelistUserAgents:  j.WhitelistUserAgents,
 		WhitelistBlockchains: j.WhitelistBlockchains,
+	}
+}
+
+type dbWhitelistContractJSON struct {
+	ApplicationID string   `json:"application_id"`
+	BlockchainID  string   `json:"blockchain_id"`
+	Contracts     []string `json:"contracts"`
+}
+
+func (j dbWhitelistContractJSON) toOutput() *repository.WhitelistContract {
+	return &repository.WhitelistContract{
+		ID:           j.ApplicationID,
+		BlockchainID: j.BlockchainID,
+		Contracts:    j.Contracts,
+	}
+}
+
+type dbWhitelistMethodJSON struct {
+	ApplicationID string   `json:"application_id"`
+	BlockchainID  string   `json:"blockchain_id"`
+	Methods       []string `json:"contracts"`
+}
+
+func (j dbWhitelistMethodJSON) toOutput() *repository.WhitelistMethod {
+	return &repository.WhitelistMethod{
+		ID:           j.ApplicationID,
+		BlockchainID: j.BlockchainID,
+		Methods:      j.Methods,
 	}
 }
 
@@ -360,26 +498,23 @@ type insertGatewaySettings struct {
 	ApplicationID        string         `db:"application_id"`
 	SecretKey            sql.NullString `db:"secret_key"`
 	SecretKeyRequired    bool           `db:"secret_key_required"`
-	WhitelistContracts   sql.NullString `db:"whitelist_contracts"`
-	WhitelistMethods     sql.NullString `db:"whitelist_methods"`
 	WhitelistOrigins     pq.StringArray `db:"whitelist_origins"`
 	WhitelistUserAgents  pq.StringArray `db:"whitelist_user_agents"`
 	WhitelistBlockchains pq.StringArray `db:"whitelist_blockchains"`
 }
 
 func (i *insertGatewaySettings) isNotNull() bool {
-	return i.SecretKey.Valid || i.WhitelistContracts.Valid || i.WhitelistMethods.Valid ||
-		len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0 || len(i.WhitelistBlockchains) != 0
+	return i.SecretKey.Valid || len(i.WhitelistOrigins) != 0 || len(i.WhitelistUserAgents) != 0 || len(i.WhitelistBlockchains) != 0
 }
 
 func (i *insertGatewaySettings) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertGatewaySettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertGatewaySettings) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertGatewaySettings
 
-	err := driver.Get(&settings, selectGatewaySettings, appID)
+	err := driver.Get(&settings, selectGatewaySettings, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -387,50 +522,90 @@ func (i *insertGatewaySettings) read(appID string, driver *PostgresDriver) (upda
 	return &settings, nil
 }
 
-func marshalWhitelistContractsAndMethods(contracts []repository.WhitelistContract, methods []repository.WhitelistMethod) (string, string) {
-	var marshaledWhitelistContracts []byte
-	if len(contracts) > 0 {
-		marshaledWhitelistContracts, _ = json.Marshal(contracts)
-	}
-
-	var marshaledWhitelistMethods []byte
-	if len(methods) > 0 {
-		marshaledWhitelistMethods, _ = json.Marshal(methods)
-	}
-
-	return string(marshaledWhitelistContracts), string(marshaledWhitelistMethods)
-}
-
 func convertRepositoryToDBGatewaySettings(id string, settings *repository.GatewaySettings) *insertGatewaySettings {
 	if settings == nil {
 		return nil
 	}
 
-	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(settings.WhitelistContracts,
-		settings.WhitelistMethods)
-
 	return &insertGatewaySettings{
 		ApplicationID:        id,
 		SecretKey:            newSQLNullString(settings.SecretKey),
 		SecretKeyRequired:    settings.SecretKeyRequired,
-		WhitelistContracts:   newSQLNullString(marshaledWhitelistContracts),
-		WhitelistMethods:     newSQLNullString(marshaledWhitelistMethods),
 		WhitelistOrigins:     settings.WhitelistOrigins,
 		WhitelistUserAgents:  settings.WhitelistUserAgents,
 		WhitelistBlockchains: settings.WhitelistBlockchains,
 	}
 }
 
-func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySettings {
-	marshaledWhitelistContracts, marshaledWhitelistMethods := marshalWhitelistContractsAndMethods(app.GatewaySettings.WhitelistContracts,
-		app.GatewaySettings.WhitelistMethods)
+type insertWhitelistContracts struct {
+	ApplicationID string         `db:"application_id"`
+	BlockchainID  string         `db:"blockchain_id"`
+	Contracts     pq.StringArray `db:"contracts"`
+}
 
+func (i *insertWhitelistContracts) isUpdatable() bool {
+	return i != nil
+}
+func (i *insertWhitelistContracts) read(driver *PostgresDriver, ids []string) (updatable, error) {
+	var settings insertWhitelistContracts
+
+	err := driver.Get(&settings, selectWhitelistContracts, ids[0], ids[1])
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func convertRepositoryToDBWhitelistContracts(id string, updateContract *repository.WhitelistContract) *insertWhitelistContracts {
+	if len(updateContract.Contracts) == 0 {
+		return nil
+	}
+
+	return &insertWhitelistContracts{
+		ApplicationID: id,
+		BlockchainID:  updateContract.BlockchainID,
+		Contracts:     updateContract.Contracts,
+	}
+}
+
+type insertWhitelistMethods struct {
+	ApplicationID string         `db:"application_id"`
+	BlockchainID  string         `db:"blockchain_id"`
+	Methods       pq.StringArray `db:"methods"`
+}
+
+func (i *insertWhitelistMethods) isUpdatable() bool {
+	return i != nil
+}
+func (i *insertWhitelistMethods) read(driver *PostgresDriver, ids []string) (updatable, error) {
+	var settings insertWhitelistContracts
+
+	err := driver.Get(&settings, selectWhitelistMethods, ids[0], ids[1])
+	if err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func convertRepositoryToDBWhitelistMethods(id string, updateContract *repository.WhitelistMethod) *insertWhitelistMethods {
+	if len(updateContract.Methods) == 0 {
+		return nil
+	}
+
+	return &insertWhitelistMethods{
+		ApplicationID: id,
+		BlockchainID:  updateContract.BlockchainID,
+		Methods:       updateContract.Methods,
+	}
+}
+
+func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySettings {
 	return &insertGatewaySettings{
 		ApplicationID:        app.ID,
 		SecretKey:            newSQLNullString(app.GatewaySettings.SecretKey),
 		SecretKeyRequired:    app.GatewaySettings.SecretKeyRequired,
-		WhitelistContracts:   newSQLNullString(marshaledWhitelistContracts),
-		WhitelistMethods:     newSQLNullString(marshaledWhitelistMethods),
 		WhitelistOrigins:     app.GatewaySettings.WhitelistOrigins,
 		WhitelistUserAgents:  app.GatewaySettings.WhitelistUserAgents,
 		WhitelistBlockchains: app.GatewaySettings.WhitelistBlockchains,
@@ -438,17 +613,13 @@ func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySet
 }
 
 func nullStringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
+	var contracts []repository.WhitelistContract
+
 	if !rawContracts.Valid {
 		return nil
 	}
 
-	return stringToWhitelistContracts(rawContracts.String)
-}
-
-func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContract {
-	contracts := []repository.WhitelistContract{}
-
-	_ = json.Unmarshal([]byte(rawContracts), &contracts)
+	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
 
 	for i, contract := range contracts {
 		for j, inContract := range contract.Contracts {
@@ -460,17 +631,13 @@ func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContr
 }
 
 func nullStringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
+	var methods []repository.WhitelistMethod
+
 	if !rawMethods.Valid {
 		return nil
 	}
 
-	return stringToWhitelistMethods(rawMethods.String)
-}
-
-func stringToWhitelistMethods(rawMethods string) []repository.WhitelistMethod {
-	methods := []repository.WhitelistMethod{}
-
-	_ = json.Unmarshal([]byte(rawMethods), &methods)
+	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
 
 	for i, method := range methods {
 		for j, inMethod := range method.Methods {
@@ -518,10 +685,10 @@ func (i *insertNotificationSettings) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertNotificationSettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertNotificationSettings) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertNotificationSettings
 
-	err := driver.Get(&settings, selectNotificationSettings, appID)
+	err := driver.Get(&settings, selectNotificationSettings, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -666,6 +833,24 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 		updateScript: updateGatewaySettings,
 		toUpdate:     convertRepositoryToDBGatewaySettings(id, fieldsToUpdate.GatewaySettings),
 	})
+	if fieldsToUpdate.GatewaySettings != nil {
+		for _, contract := range fieldsToUpdate.GatewaySettings.WhitelistContracts {
+			updates = append(updates, &update{
+				insertScript: insertWhitelistContractsScript,
+				updateScript: updateWhitelistContractsScript,
+				toUpdate:     convertRepositoryToDBWhitelistContracts(id, &contract),
+				secondaryID:  contract.BlockchainID,
+			})
+		}
+		for _, method := range fieldsToUpdate.GatewaySettings.WhitelistMethods {
+			updates = append(updates, &update{
+				insertScript: insertWhitelistMethodsScript,
+				updateScript: updateWhitelistMethodsScript,
+				toUpdate:     convertRepositoryToDBWhitelistMethods(id, &method),
+				secondaryID:  method.BlockchainID,
+			})
+		}
+	}
 
 	updates = append(updates, &update{
 		insertScript: insertNotificationSettingsScript,

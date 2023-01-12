@@ -177,10 +177,10 @@ func (i *insertStickinessOptions) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertStickinessOptions) read(lbID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertStickinessOptions) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var options insertStickinessOptions
 
-	err := driver.Get(&options, selectStickinessOptions, lbID)
+	err := driver.Get(&options, selectStickinessOptions, ids[0])
 	if err != nil {
 		return nil, err
 	}

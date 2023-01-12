@@ -26,7 +26,7 @@ func TestPostgresDriver_ReadApplications(t *testing.T) {
 			`[{"blockchainID":"0021","contracts":["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}]`,
 			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`)
 
-	mock.ExpectQuery("^SELECT (.+) FROM applications (.+)").WillReturnRows(rows)
+	mock.ExpectQuery("^WITH (.+) SELECT (.+) FROM applications(.+)").WillReturnRows(rows)
 
 	driver := NewPostgresDriverFromSQLDBInstance(db, &ListenerMock{})
 
@@ -34,7 +34,7 @@ func TestPostgresDriver_ReadApplications(t *testing.T) {
 	c.NoError(err)
 	c.Len(applications, 1)
 
-	mock.ExpectQuery("^SELECT (.+) FROM applications (.+)").WillReturnError(errors.New("dummy error"))
+	mock.ExpectQuery("^WITH (.+) SELECT (.+) FROM applications(.+)").WillReturnError(errors.New("dummy error"))
 
 	applications, err = driver.ReadApplications()
 	c.EqualError(err, "dummy error")
@@ -69,9 +69,7 @@ func TestPostgresDriver_WriteApplication(t *testing.T) {
 		"1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT into gateway_settings").WithArgs(sqlmock.AnyArg(),
-		"54y4p93body6qco2nrhonz6bltn1k5e8", true, `[{"blockchainID":"0021","contracts":["ajua"]}]`,
-		`[{"blockchainID":"0021","methods":["POST"]}]`, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
+	mock.ExpectExec("INSERT into gateway_settings").WithArgs(sqlmock.AnyArg(), "54y4p93body6qco2nrhonz6bltn1k5e8", true, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectExec("INSERT into notification_settings").WithArgs(sqlmock.AnyArg(),
@@ -201,14 +199,19 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectExec("UPDATE app_limits").WithArgs("PAY_AS_YOU_GO_V0", nil, "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
-		AddRow("5f62b7d8be3591c4dea85661",
-			`[{"blockchainID":"0021","contracts":["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}]`,
-			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id"}).
+		AddRow("5f62b7d8be3591c4dea85661"))
+	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8", true, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
+		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
-		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
+	mock.ExpectQuery("SELECT (.+) FROM whitelist_contracts (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "blockchain_id"}).
+		AddRow("5f62b7d8be3591c4dea85661", "0021"))
+	mock.ExpectExec("UPDATE whitelist_contracts").WithArgs(pq.StringArray([]string{"ajua"}), "60e85042bf95f5003559b791", "0021").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("SELECT (.+) FROM whitelist_methods (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "blockchain_id"}).
+		AddRow("5f62b7d8be3591c4dea85661", "0021"))
+	mock.ExpectExec("UPDATE whitelist_methods").WithArgs(pq.StringArray([]string{"POST"}), "60e85042bf95f5003559b791", "0021").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectQuery("^SELECT (.+) FROM notification_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "signed_up", "on_quarter", "on_half", "on_three_quarters", "on_full"}).
@@ -279,8 +282,16 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
 
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
-		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
+		true, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT (.+) FROM whitelist_contracts (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "blockchain_id"}).
+		AddRow("5f62b7d8be3591c4dea85661", "0021"))
+	mock.ExpectExec("UPDATE whitelist_contracts").WithArgs(pq.StringArray([]string{"ajua"}), "60e85042bf95f5003559b791", "0021").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectQuery("SELECT (.+) FROM whitelist_methods (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "blockchain_id"}).
+		AddRow("5f62b7d8be3591c4dea85661", "0021"))
+	mock.ExpectExec("UPDATE whitelist_methods").WithArgs(pq.StringArray([]string{"POST"}), "60e85042bf95f5003559b791", "0021").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectCommit()
@@ -381,14 +392,11 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectExec("UPDATE app_limits").WithArgs("PAY_AS_YOU_GO_V0", nil, "60e85042bf95f5003559b791").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id", "whitelist_contracts", "whitelist_methods"}).
-		AddRow("5f62b7d8be3591c4dea85661",
-			`[{"blockchainID":"0021","contracts":["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}]`,
-			`[{"blockchainID":"000C","methods":["\t  eth_getBlockByHash"]}]`))
+	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows([]string{"application_id"}).
+		AddRow("5f62b7d8be3591c4dea85661"))
 
 	mock.ExpectExec("UPDATE gateway_settings").WithArgs("54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
-		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
+		true, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"}), "60e85042bf95f5003559b791").
 		WillReturnError(errors.New("error in settings"))
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{
@@ -414,8 +422,7 @@ func TestPostgresDriver_UpdateApplication(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM gateway_settings (.+)").WillReturnRows(sqlmock.NewRows(nil))
 
 	mock.ExpectExec("INSERT into gateway_settings").WithArgs("60e85042bf95f5003559b791", "54y4p93body6qco2nrhonz6bltn1k5e8",
-		true, `[{"blockchainID":"0021","contracts":["ajua"]}]`, `[{"blockchainID":"0021","methods":["POST"]}]`,
-		pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
+		true, pq.StringArray([]string{"url.com"}), pq.StringArray([]string{"gecko.com"}), pq.StringArray([]string{"0021"})).
 		WillReturnError(errors.New("error in inserting settings"))
 
 	err = driver.UpdateApplication("60e85042bf95f5003559b791", &repository.UpdateApplication{

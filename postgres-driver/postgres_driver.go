@@ -139,13 +139,14 @@ type nullable interface {
 
 type updatable interface {
 	isUpdatable() bool
-	read(appID string, driver *PostgresDriver) (updatable, error)
+	read(driver *PostgresDriver, args []string) (updatable, error)
 }
 
 type update struct {
 	insertScript string
 	updateScript string
 	toUpdate     updatable
+	secondaryID  string
 }
 
 func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error {
@@ -153,7 +154,12 @@ func (d *PostgresDriver) doUpdate(id string, update *update, tx *sqlx.Tx) error 
 		return nil
 	}
 
-	_, err := update.toUpdate.read(id, d)
+	ids := []string{id}
+	if update.secondaryID != "" {
+		ids = append(ids, update.secondaryID)
+	}
+
+	_, err := update.toUpdate.read(d, ids)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			_, err = tx.NamedExec(update.insertScript, update.toUpdate)
