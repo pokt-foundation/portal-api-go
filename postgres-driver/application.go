@@ -3,6 +3,7 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -547,14 +548,14 @@ func (i *insertWhitelistContracts) isUpdatable() bool {
 	return i != nil
 }
 func (i *insertWhitelistContracts) read(driver *PostgresDriver, ids []string) (updatable, error) {
-	var settings insertWhitelistContracts
+	var contracts insertWhitelistContracts
 
-	err := driver.Get(&settings, selectWhitelistContracts, ids[0], ids[1])
+	err := driver.Get(&contracts, selectWhitelistContracts, ids[0], ids[1])
 	if err != nil {
 		return nil, err
 	}
 
-	return &settings, nil
+	return &contracts, nil
 }
 
 func convertRepositoryToDBWhitelistContracts(id string, updateContract *repository.WhitelistContract) *insertWhitelistContracts {
@@ -579,14 +580,14 @@ func (i *insertWhitelistMethods) isUpdatable() bool {
 	return i != nil
 }
 func (i *insertWhitelistMethods) read(driver *PostgresDriver, ids []string) (updatable, error) {
-	var settings insertWhitelistContracts
+	var methods insertWhitelistMethods
 
-	err := driver.Get(&settings, selectWhitelistMethods, ids[0], ids[1])
+	err := driver.Get(&methods, selectWhitelistMethods, ids[0], ids[1])
 	if err != nil {
 		return nil, err
 	}
 
-	return &settings, nil
+	return &methods, nil
 }
 
 func convertRepositoryToDBWhitelistMethods(id string, updateContract *repository.WhitelistMethod) *insertWhitelistMethods {
@@ -795,6 +796,7 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 		}
 	}
 
+	fmt.Println("HEY HI I AM THE ERROR", err)
 	return app, tx.Commit()
 }
 
