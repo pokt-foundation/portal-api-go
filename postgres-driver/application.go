@@ -122,10 +122,10 @@ const (
 	FROM gateway_settings WHERE application_id = $1`
 	selectWhitelistContracts = `
 	SELECT application_id, blockchain_id, contracts
-	FROM whitelist_contracts WHERE application_id = $1`
+	FROM whitelist_contracts WHERE application_id = $1 AND blockchain_id = $2`
 	selectWhitelistMethods = `
 	SELECT application_id, blockchain_id, methods
-	FROM whitelist_methods WHERE application_id = $1`
+	FROM whitelist_methods WHERE application_id = $1 AND blockchain_id = $2`
 	selectNotificationSettings = `
 	SELECT application_id, signed_up, on_quarter, on_half, on_three_quarters, on_full
 	FROM notification_settings WHERE application_id = $1`
@@ -363,10 +363,10 @@ func (i *insertAppLimit) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertAppLimit) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertAppLimit) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var limit insertAppLimit
 
-	err := driver.Get(&limit, selectAppLimit, appID)
+	err := driver.Get(&limit, selectAppLimit, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -466,6 +466,34 @@ func (j dbGatewaySettingsJSON) toOutput() *repository.GatewaySettings {
 	}
 }
 
+type dbWhitelistContractJSON struct {
+	ApplicationID string   `json:"application_id"`
+	BlockchainID  string   `json:"blockchain_id"`
+	Contracts     []string `json:"contracts"`
+}
+
+func (j dbWhitelistContractJSON) toOutput() *repository.WhitelistContract {
+	return &repository.WhitelistContract{
+		ID:           j.ApplicationID,
+		BlockchainID: j.BlockchainID,
+		Contracts:    j.Contracts,
+	}
+}
+
+type dbWhitelistMethodJSON struct {
+	ApplicationID string   `json:"application_id"`
+	BlockchainID  string   `json:"blockchain_id"`
+	Methods       []string `json:"contracts"`
+}
+
+func (j dbWhitelistMethodJSON) toOutput() *repository.WhitelistMethod {
+	return &repository.WhitelistMethod{
+		ID:           j.ApplicationID,
+		BlockchainID: j.BlockchainID,
+		Methods:      j.Methods,
+	}
+}
+
 type insertGatewaySettings struct {
 	ApplicationID        string         `db:"application_id"`
 	SecretKey            sql.NullString `db:"secret_key"`
@@ -483,10 +511,10 @@ func (i *insertGatewaySettings) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertGatewaySettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertGatewaySettings) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertGatewaySettings
 
-	err := driver.Get(&settings, selectGatewaySettings, appID)
+	err := driver.Get(&settings, selectGatewaySettings, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -518,10 +546,10 @@ type insertWhitelistContracts struct {
 func (i *insertWhitelistContracts) isUpdatable() bool {
 	return i != nil
 }
-func (i *insertWhitelistContracts) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertWhitelistContracts) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertWhitelistContracts
 
-	err := driver.Get(&settings, selectWhitelistContracts, appID)
+	err := driver.Get(&settings, selectWhitelistContracts, ids[0], ids[1])
 	if err != nil {
 		return nil, err
 	}
@@ -550,10 +578,10 @@ type insertWhitelistMethods struct {
 func (i *insertWhitelistMethods) isUpdatable() bool {
 	return i != nil
 }
-func (i *insertWhitelistMethods) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertWhitelistMethods) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertWhitelistContracts
 
-	err := driver.Get(&settings, selectWhitelistMethods, appID)
+	err := driver.Get(&settings, selectWhitelistMethods, ids[0], ids[1])
 	if err != nil {
 		return nil, err
 	}
@@ -657,10 +685,10 @@ func (i *insertNotificationSettings) isUpdatable() bool {
 	return i != nil
 }
 
-func (i *insertNotificationSettings) read(appID string, driver *PostgresDriver) (updatable, error) {
+func (i *insertNotificationSettings) read(driver *PostgresDriver, ids []string) (updatable, error) {
 	var settings insertNotificationSettings
 
-	err := driver.Get(&settings, selectNotificationSettings, appID)
+	err := driver.Get(&settings, selectNotificationSettings, ids[0])
 	if err != nil {
 		return nil, err
 	}
@@ -811,6 +839,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 				insertScript: insertWhitelistContractsScript,
 				updateScript: updateWhitelistContractsScript,
 				toUpdate:     convertRepositoryToDBWhitelistContracts(id, &contract),
+				secondaryID:  contract.BlockchainID,
 			})
 		}
 		for _, method := range fieldsToUpdate.GatewaySettings.WhitelistMethods {
@@ -818,6 +847,7 @@ func (d *PostgresDriver) UpdateApplication(id string, fieldsToUpdate *repository
 				insertScript: insertWhitelistMethodsScript,
 				updateScript: updateWhitelistMethodsScript,
 				toUpdate:     convertRepositoryToDBWhitelistMethods(id, &method),
+				secondaryID:  method.BlockchainID,
 			})
 		}
 	}

@@ -230,13 +230,23 @@ func (s *GatewaySettings) Table() Table {
 }
 
 type WhitelistContract struct {
+	ID           string   `json:"id,omitempty"`
 	BlockchainID string   `json:"blockchainID"`
 	Contracts    []string `json:"contracts"`
 }
 
+func (s *WhitelistContract) Table() Table {
+	return TableWhitelistContracts
+}
+
 type WhitelistMethod struct {
+	ID           string   `json:"id,omitempty"`
 	BlockchainID string   `json:"blockchainID"`
 	Methods      []string `json:"methods"`
+}
+
+func (s *WhitelistMethod) Table() Table {
+	return TableWhitelistMethods
 }
 
 type NotificationSettings struct {
@@ -535,6 +545,8 @@ const (
 	TableAppLimits            Table = "app_limits"
 	TableGatewayAAT           Table = "gateway_aat"
 	TableGatewaySettings      Table = "gateway_settings"
+	TableWhitelistContracts   Table = "whitelist_contracts"
+	TableWhitelistMethods     Table = "whitelist_methods"
 	TableNotificationSettings Table = "notification_settings"
 	TableBlockchains          Table = "blockchains"
 	TableRedirects            Table = "redirects"
