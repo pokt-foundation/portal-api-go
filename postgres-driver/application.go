@@ -483,7 +483,7 @@ func (j dbWhitelistContractJSON) toOutput() *repository.WhitelistContract {
 type dbWhitelistMethodJSON struct {
 	ApplicationID string   `json:"application_id"`
 	BlockchainID  string   `json:"blockchain_id"`
-	Methods       []string `json:"contracts"`
+	Methods       []string `json:"methods"`
 }
 
 func (j dbWhitelistMethodJSON) toOutput() *repository.WhitelistMethod {
