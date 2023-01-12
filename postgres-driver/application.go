@@ -3,7 +3,6 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -796,7 +795,6 @@ func (d *PostgresDriver) WriteApplication(app *repository.Application) (*reposit
 		}
 	}
 
-	fmt.Println("HEY HI I AM THE ERROR", err)
 	return app, tx.Commit()
 }
 
