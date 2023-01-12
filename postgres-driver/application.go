@@ -3,7 +3,6 @@ package postgresdriver
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -250,8 +249,8 @@ func (a *dbApplication) toApplication() *repository.Application {
 			SecretKey:            a.SecretKey.String,
 			SecretKeyRequired:    a.SecretKeyRequired.Bool,
 			WhitelistBlockchains: a.WhitelistBlockchains,
-			WhitelistContracts:   stringToWhitelistContracts(fmt.Sprintf("%v", a.WhitelistContracts)),
-			WhitelistMethods:     stringToWhitelistMethods(fmt.Sprintf("%v", a.WhitelistMethods)),
+			WhitelistContracts:   nullStringToWhitelistContracts(a.WhitelistContracts),
+			WhitelistMethods:     nullStringToWhitelistMethods(a.WhitelistMethods),
 			WhitelistOrigins:     a.WhitelistOrigins,
 			WhitelistUserAgents:  a.WhitelistUserAgents,
 		},
@@ -585,14 +584,14 @@ func extractInsertGatewaySettings(app *repository.Application) *insertGatewaySet
 	}
 }
 
-func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContract {
+func nullStringToWhitelistContracts(rawContracts sql.NullString) []repository.WhitelistContract {
 	var contracts []repository.WhitelistContract
 
-	if rawContracts == "" {
-		return contracts
+	if !rawContracts.Valid {
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawContracts), &contracts)
+	_ = json.Unmarshal([]byte(rawContracts.String), &contracts)
 
 	for i, contract := range contracts {
 		for j, inContract := range contract.Contracts {
@@ -603,14 +602,14 @@ func stringToWhitelistContracts(rawContracts string) []repository.WhitelistContr
 	return contracts
 }
 
-func stringToWhitelistMethods(rawMethods string) []repository.WhitelistMethod {
+func nullStringToWhitelistMethods(rawMethods sql.NullString) []repository.WhitelistMethod {
 	var methods []repository.WhitelistMethod
 
-	if rawMethods == "" {
-		return methods
+	if !rawMethods.Valid {
+		return nil
 	}
 
-	_ = json.Unmarshal([]byte(rawMethods), &methods)
+	_ = json.Unmarshal([]byte(rawMethods.String), &methods)
 
 	for i, method := range methods {
 		for j, inMethod := range method.Methods {
