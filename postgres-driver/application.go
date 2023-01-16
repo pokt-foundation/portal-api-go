@@ -54,7 +54,7 @@ const (
 		CASE
 			WHEN wc.application_id IS NOT NULL THEN json_agg(
 				json_build_object(
-					'blockchain_id',
+					'blockchainID',
 					wc.blockchain_id,
 					'contracts',
 					wc.contracts
@@ -65,7 +65,7 @@ const (
 		CASE
 			WHEN wm.application_id IS NOT NULL THEN json_agg(
 				json_build_object(
-					'blockchain_id',
+					'blockchainID',
 					wm.blockchain_id,
 					'methods',
 					wm.methods
